@@ -15,20 +15,23 @@ est là pour ceux qui veulent creuser.
 
 <html_design>
 **Principes visuels :**
-- Fond blanc, typographie noire — sobre et pro
+- Dark theme — cohérent avec le dashboard getBrandon
 - Sidebar fixe à gauche (220px), contenu scrollable à droite
 - Navigation : logo GBD + nom client en haut, liens par section
-- Chaque section commence par un TL;DR en encadré coloré
+- Chaque section commence par un TL;DR en encadré emerald
 - Titres clairs, hiérarchie lisible, espace blanc généreux
-- Pas de framework externe. CSS inline dans le `<style>` du fichier.
+- Font : Syne (Google Fonts, avec fallback system-ui si hors-ligne)
 - Responsive basique : sidebar se replie en top nav sous 768px
 
 **Palette :**
-- Accent : #1a1a1a (presque noir)
-- TL;DR background : #f5f5f0 (crème léger)
-- Séparateurs : #e5e5e5
-- Texte principal : #333
-- Texte secondaire : #777
+- Fond : #0a0a0b
+- Sidebar : #111113
+- Texte principal : #e4e4e7
+- Texte secondaire : #a1a1aa
+- Muted : #71717a
+- Borders : #27272a
+- Accent TL;DR : #10b981 (emerald)
+- Titres forts : #f4f4f5
 </html_design>
 
 <process>
@@ -69,16 +72,18 @@ Générer le fichier HTML complet.
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>GBD — [Client Name]</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <style>
     /* Reset */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-family: 'Syne', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
       font-size: 15px;
       line-height: 1.7;
-      color: #333;
-      background: #fff;
+      color: #e4e4e7;
+      background: #0a0a0b;
       display: flex;
       min-height: 100vh;
     }
@@ -87,8 +92,8 @@ Générer le fichier HTML complet.
     .sidebar {
       width: 220px;
       min-width: 220px;
-      background: #fafafa;
-      border-right: 1px solid #e5e5e5;
+      background: #111113;
+      border-right: 1px solid #27272a;
       padding: 32px 20px;
       position: fixed;
       top: 0; left: 0;
@@ -101,14 +106,14 @@ Générer le fichier HTML complet.
       font-weight: 700;
       letter-spacing: 0.12em;
       text-transform: uppercase;
-      color: #999;
+      color: #52525b;
       margin-bottom: 4px;
     }
 
     .sidebar-client {
       font-size: 17px;
       font-weight: 700;
-      color: #1a1a1a;
+      color: #f4f4f5;
       margin-bottom: 32px;
       line-height: 1.3;
     }
@@ -121,16 +126,20 @@ Générer le fichier HTML complet.
       display: block;
       padding: 6px 10px;
       border-radius: 6px;
-      color: #555;
+      color: #71717a;
       text-decoration: none;
       font-size: 13px;
       transition: background 0.15s, color 0.15s;
     }
 
-    .sidebar-nav a:hover,
+    .sidebar-nav a:hover {
+      background: #18181b;
+      color: #e4e4e7;
+    }
+
     .sidebar-nav a.active {
-      background: #efefef;
-      color: #1a1a1a;
+      background: #18181b;
+      color: #10b981;
     }
 
     .sidebar-nav .nav-section-label {
@@ -138,21 +147,18 @@ Générer le fichier HTML complet.
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.1em;
-      color: #bbb;
+      color: #3f3f46;
       padding: 16px 10px 4px;
     }
 
     .sidebar-nav a.nav-sub {
       padding-left: 20px;
       font-size: 12px;
-      color: #888;
+      color: #52525b;
     }
 
-    .sidebar-nav a.nav-sub:hover,
-    .sidebar-nav a.nav-sub.active {
-      background: #efefef;
-      color: #1a1a1a;
-    }
+    .sidebar-nav a.nav-sub:hover { background: #18181b; color: #e4e4e7; }
+    .sidebar-nav a.nav-sub.active { background: #18181b; color: #10b981; }
 
     /* Main content */
     .main {
@@ -166,7 +172,7 @@ Générer le fichier HTML complet.
     .section {
       margin-bottom: 80px;
       padding-bottom: 80px;
-      border-bottom: 1px solid #e5e5e5;
+      border-bottom: 1px solid #27272a;
     }
 
     .section:last-child { border-bottom: none; }
@@ -176,22 +182,22 @@ Générer le fichier HTML complet.
       font-weight: 700;
       letter-spacing: 0.12em;
       text-transform: uppercase;
-      color: #bbb;
+      color: #52525b;
       margin-bottom: 8px;
     }
 
     .section-title {
       font-size: 26px;
       font-weight: 700;
-      color: #1a1a1a;
+      color: #f4f4f5;
       margin-bottom: 24px;
       line-height: 1.3;
     }
 
     /* TL;DR */
     .tldr {
-      background: #f5f5f0;
-      border-left: 3px solid #1a1a1a;
+      background: rgba(16, 185, 129, 0.08);
+      border-left: 3px solid #10b981;
       border-radius: 0 8px 8px 0;
       padding: 20px 24px;
       margin-bottom: 40px;
@@ -202,7 +208,7 @@ Générer le fichier HTML complet.
       font-weight: 700;
       letter-spacing: 0.1em;
       text-transform: uppercase;
-      color: #999;
+      color: #52525b;
       margin-bottom: 10px;
     }
 
@@ -210,7 +216,7 @@ Générer le fichier HTML complet.
 
     .tldr ul li {
       font-size: 14px;
-      color: #333;
+      color: #a1a1aa;
       padding: 4px 0;
       padding-left: 16px;
       position: relative;
@@ -220,7 +226,7 @@ Générer le fichier HTML complet.
       content: "→";
       position: absolute;
       left: 0;
-      color: #999;
+      color: #10b981;
     }
 
     /* Content blocks */
@@ -231,13 +237,13 @@ Générer le fichier HTML complet.
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.08em;
-      color: #999;
+      color: #52525b;
       margin-bottom: 8px;
     }
 
     .block-content {
       font-size: 15px;
-      color: #333;
+      color: #a1a1aa;
       line-height: 1.7;
     }
 
@@ -247,16 +253,18 @@ Générer le fichier HTML complet.
     .tags { display: flex; flex-wrap: wrap; gap: 8px; }
 
     .tag {
-      background: #f0f0f0;
+      background: #18181b;
+      border: 1px solid #27272a;
       border-radius: 4px;
       padding: 4px 10px;
       font-size: 13px;
-      color: #555;
+      color: #71717a;
     }
 
     .tag.negative {
-      background: #fff0f0;
-      color: #c00;
+      background: rgba(239, 68, 68, 0.1);
+      border-color: rgba(239, 68, 68, 0.2);
+      color: #ef4444;
     }
 
     /* We are / We are never table */
@@ -267,24 +275,25 @@ Générer le fichier HTML complet.
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.08em;
-      color: #999;
+      color: #52525b;
       padding: 8px 12px;
       text-align: left;
-      border-bottom: 1px solid #e5e5e5;
+      border-bottom: 1px solid #27272a;
     }
 
     .we-table td {
       padding: 10px 12px;
       font-size: 14px;
-      border-bottom: 1px solid #f0f0f0;
+      border-bottom: 1px solid #18181b;
     }
 
-    .we-table td:first-child { color: #1a1a1a; }
-    .we-table td:last-child { color: #c00; }
+    .we-table td:first-child { color: #e4e4e7; }
+    .we-table td:last-child { color: #ef4444; }
 
     /* Pilier / Valeur card */
     .card {
-      border: 1px solid #e5e5e5;
+      background: #111113;
+      border: 1px solid #27272a;
       border-radius: 8px;
       padding: 20px;
       margin-bottom: 12px;
@@ -294,18 +303,18 @@ Générer le fichier HTML complet.
       font-weight: 700;
       font-size: 15px;
       margin-bottom: 6px;
-      color: #1a1a1a;
+      color: #f4f4f5;
     }
 
     .card-sub {
       font-size: 13px;
-      color: #777;
+      color: #71717a;
       margin-bottom: 8px;
     }
 
     .card-proof {
       font-size: 12px;
-      color: #999;
+      color: #52525b;
       font-style: italic;
     }
 
@@ -313,7 +322,8 @@ Générer le fichier HTML complet.
     .essence-block {
       text-align: center;
       padding: 48px;
-      border: 1px solid #e5e5e5;
+      background: #111113;
+      border: 1px solid #27272a;
       border-radius: 12px;
       margin: 32px 0;
     }
@@ -321,7 +331,7 @@ Générer le fichier HTML complet.
     .essence-text {
       font-size: 36px;
       font-weight: 800;
-      color: #1a1a1a;
+      color: #f4f4f5;
       letter-spacing: -0.02em;
     }
 
@@ -329,9 +339,9 @@ Générer le fichier HTML complet.
     .manifeste {
       font-size: 16px;
       line-height: 2;
-      color: #333;
+      color: #a1a1aa;
       font-style: italic;
-      border-left: 2px solid #e5e5e5;
+      border-left: 2px solid #27272a;
       padding-left: 24px;
       margin: 24px 0;
     }
@@ -340,9 +350,9 @@ Générer le fichier HTML complet.
     .footer {
       margin-top: 80px;
       padding-top: 24px;
-      border-top: 1px solid #e5e5e5;
+      border-top: 1px solid #27272a;
       font-size: 12px;
-      color: #bbb;
+      color: #3f3f46;
     }
 
     /* Responsive */
@@ -353,7 +363,7 @@ Générer le fichier HTML complet.
         width: 100%;
         height: auto;
         border-right: none;
-        border-bottom: 1px solid #e5e5e5;
+        border-bottom: 1px solid #27272a;
       }
       .main { margin-left: 0; padding: 32px 24px; }
     }
@@ -455,21 +465,21 @@ Générer le fichier HTML complet.
       <div style="display:grid;gap:24px;margin-bottom:8px;">
 
         <!-- 1 MOT : le mot le plus juste qui incarne la marque — 1 seul, brutal -->
-        <div style="border:1px solid #e5e5e5;border-radius:12px;padding:40px 48px;text-align:center;">
-          <div style="font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:#bbb;margin-bottom:16px;">1 mot</div>
-          <div style="font-size:52px;font-weight:800;color:#1a1a1a;letter-spacing:-0.03em;line-height:1;">[MOT — généré depuis l'essence + angle stratégique]</div>
+        <div style="background:#111113;border:1px solid #27272a;border-radius:12px;padding:40px 48px;text-align:center;">
+          <div style="font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:#52525b;margin-bottom:16px;">1 mot</div>
+          <div style="font-size:52px;font-weight:800;color:#f4f4f5;letter-spacing:-0.03em;line-height:1;">[MOT — généré depuis l'essence + angle stratégique]</div>
         </div>
 
         <!-- 1 PHRASE : mémorable, humaine — pas la phrase de positionnement technique -->
-        <div style="border:1px solid #e5e5e5;border-radius:12px;padding:32px 40px;">
-          <div style="font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:#bbb;margin-bottom:16px;">1 phrase</div>
-          <div style="font-size:20px;font-weight:600;color:#1a1a1a;line-height:1.5;">[PHRASE — ce qu'on dirait à quelqu'un en 10 secondes, générée depuis positionnement + discriminant]</div>
+        <div style="background:#111113;border:1px solid #27272a;border-radius:12px;padding:32px 40px;">
+          <div style="font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:#52525b;margin-bottom:16px;">1 phrase</div>
+          <div style="font-size:20px;font-weight:600;color:#f4f4f5;line-height:1.5;">[PHRASE — ce qu'on dirait à quelqu'un en 10 secondes, générée depuis positionnement + discriminant]</div>
         </div>
 
         <!-- 1 PARAGRAPHE : elevator pitch, 3-5 phrases, pour un investisseur ou partenaire -->
-        <div style="border:1px solid #e5e5e5;border-radius:12px;padding:32px 40px;">
-          <div style="font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:#bbb;margin-bottom:16px;">1 paragraphe</div>
-          <div style="font-size:15px;color:#333;line-height:1.8;">[PARAGRAPHE — elevator pitch 3-5 phrases, généré depuis raison d'être + positionnement + preuve différenciante]</div>
+        <div style="background:#111113;border:1px solid #27272a;border-radius:12px;padding:32px 40px;">
+          <div style="font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:#52525b;margin-bottom:16px;">1 paragraphe</div>
+          <div style="font-size:15px;color:#a1a1aa;line-height:1.8;">[PARAGRAPHE — elevator pitch 3-5 phrases, généré depuis raison d'être + positionnement + preuve différenciante]</div>
         </div>
 
       </div>
@@ -498,7 +508,7 @@ Générer le fichier HTML complet.
     <section class="section" id="raison-detre">
       <div class="section-label">Plateforme · 1/7</div>
       <h2 class="section-title">Raison d'être</h2>
-      <div class="essence-block" style="padding: 44px 48px;">
+      <div class="essence-block" style="padding:44px 48px;">
         <div class="essence-text" style="font-size:22px;line-height:1.6;">[pages.raison_detre.contenu]</div>
       </div>
     </section>
@@ -598,7 +608,7 @@ Générer le fichier HTML complet.
       <h2 class="section-title">Essence & Manifeste</h2>
       <div class="essence-block">
         <div class="essence-text">[pages.essence.essence]</div>
-        <div class="essence-tension" style="margin-top:16px;font-size:14px;color:#777;">[pages.essence.tension]</div>
+        <div class="essence-tension" style="margin-top:16px;font-size:14px;color:#71717a;">[pages.essence.tension]</div>
       </div>
       <div class="block">
         <div class="block-title">Manifeste</div>
@@ -690,7 +700,7 @@ Générer le fichier HTML complet.
         <div class="block-title">Architecture</div>
         <!-- Pour chaque page principale -->
         <div class="card">
-          <div class="card-title">[page.page] <span style="font-weight:400;color:#999">[page.url_slug]</span></div>
+          <div class="card-title">[page.page] <span style="font-weight:400;color:#52525b">[page.url_slug]</span></div>
           <div class="card-sub">[page.role]</div>
           <div class="card-proof">[page.objectif_visiteur]</div>
         </div>
