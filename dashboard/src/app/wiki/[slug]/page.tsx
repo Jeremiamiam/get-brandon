@@ -1,8 +1,10 @@
-import { supabase } from "@/lib/supabase";
+import { getSupabase, DashboardClient, DashboardWiki } from "@/lib/supabase";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
 async function getWiki(slug: string) {
+  const supabase = getSupabase();
+
   const { data: client } = await supabase
     .from("dashboard_clients")
     .select("name, slug")
@@ -17,7 +19,10 @@ async function getWiki(slug: string) {
     .eq("client_slug", slug)
     .single();
 
-  return { client, html: wiki?.html_content ?? null };
+  return {
+    client: client as Pick<DashboardClient, "name" | "slug">,
+    html: (wiki as Pick<DashboardWiki, "html_content"> | null)?.html_content ?? null,
+  };
 }
 
 export default async function WikiPage({
