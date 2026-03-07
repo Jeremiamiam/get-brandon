@@ -27,6 +27,7 @@ export type Project = {
   totalPhases: number;
   lastActivity: string;
   startDate: string;
+  potentialAmount?: number;  // montant potentiel (devis en cours, prospects)
 };
 
 // Documents — clientId toujours présent, projectId optionnel (absent = doc "global" client)
@@ -42,7 +43,8 @@ export type Document = {
 
 export type Conversation = {
   id: string;
-  projectId: string;
+  clientId: string;
+  projectId?: string;  // absent = conversation globale client
   title: string;
   preview: string;
   date: string;
@@ -189,6 +191,7 @@ export const PROJECTS: Project[] = [
     totalPhases: 3,
     lastActivity: "—",
     startDate: "À planifier",
+    potentialAmount: 4500,
   },
 
   // Bloo Conseil
@@ -229,6 +232,7 @@ export const PROJECTS: Project[] = [
     totalPhases: 3,
     lastActivity: "—",
     startDate: "2026",
+    potentialAmount: 8000,
   },
 
   // Ornanza
@@ -243,6 +247,37 @@ export const PROJECTS: Project[] = [
     totalPhases: 5,
     lastActivity: "—",
     startDate: "À planifier",
+    potentialAmount: 3500,
+  },
+
+  // Prospects — Solstice Studio
+  {
+    id: "refonte-interieur",
+    clientId: "solstice",
+    name: "Refonte identité",
+    type: "brand",
+    status: "draft",
+    description: "Repositionnement et identité visuelle pour agence d'architecture.",
+    progress: 0,
+    totalPhases: 4,
+    lastActivity: "—",
+    startDate: "À planifier",
+    potentialAmount: 6000,
+  },
+
+  // Prospects — Kaïa Foods
+  {
+    id: "packaging-bio",
+    clientId: "kaia",
+    name: "Packaging & marque",
+    type: "brand",
+    status: "draft",
+    description: "Identité visuelle et packaging pour gamme bio.",
+    progress: 0,
+    totalPhases: 5,
+    lastActivity: "—",
+    startDate: "À planifier",
+    potentialAmount: 5200,
   },
 ];
 
@@ -296,18 +331,24 @@ export const DOCUMENTS: Document[] = [
 
 // ─── Conversations ────────────────────────────────────────────
 export const CONVERSATIONS: Conversation[] = [
-  { id: "c1", projectId: "identite-de-marque", title: "Session brief stratégique", preview: "On a discuté du positionnement premium vs accessible...", date: "10 nov", messageCount: 24 },
-  { id: "c2", projectId: "identite-de-marque", title: "Plateforme — itération 1", preview: "L'essence « Caractère » validée, on affine le manifeste...", date: "18 nov", messageCount: 47 },
-  { id: "c3", projectId: "identite-de-marque", title: "Brandbook — révisions finales", preview: "Dernières corrections typographiques avant envoi...", date: "28 nov", messageCount: 12 },
+  // Par projet
+  { id: "c1", clientId: "brutus", projectId: "identite-de-marque", title: "Session brief stratégique", preview: "On a discuté du positionnement premium vs accessible...", date: "10 nov", messageCount: 24 },
+  { id: "c2", clientId: "brutus", projectId: "identite-de-marque", title: "Plateforme — itération 1", preview: "L'essence « Caractère » validée, on affine le manifeste...", date: "18 nov", messageCount: 47 },
+  { id: "c3", clientId: "brutus", projectId: "identite-de-marque", title: "Brandbook — révisions finales", preview: "Dernières corrections typographiques avant envoi...", date: "28 nov", messageCount: 12 },
 
-  { id: "c4", projectId: "site-web", title: "Architecture du site", preview: "5 pages, la home met en avant la box du mois...", date: "20 jan", messageCount: 31 },
-  { id: "c5", projectId: "site-web", title: "Contenus et copywriting", preview: "On travaille les titres de la page boutique...", date: "3 mars", messageCount: 19 },
+  { id: "c4", clientId: "brutus", projectId: "site-web", title: "Architecture du site", preview: "5 pages, la home met en avant la box du mois...", date: "20 jan", messageCount: 31 },
+  { id: "c5", clientId: "brutus", projectId: "site-web", title: "Contenus et copywriting", preview: "On travaille les titres de la page boutique...", date: "3 mars", messageCount: 19 },
 
-  { id: "c6", projectId: "refonte-marque", title: "Kick-off projet", preview: "10 ans d'existence, refonte de l'image...", date: "5 oct", messageCount: 18 },
-  { id: "c7", projectId: "refonte-marque", title: "Plateforme — angle éthique structurelle", preview: "L'éthique comme contrainte, pas comme valeur...", date: "20 oct", messageCount: 52 },
+  { id: "c6", clientId: "bloo-conseil", projectId: "refonte-marque", title: "Kick-off projet", preview: "10 ans d'existence, refonte de l'image...", date: "5 oct", messageCount: 18 },
+  { id: "c7", clientId: "bloo-conseil", projectId: "refonte-marque", title: "Plateforme — angle éthique structurelle", preview: "L'éthique comme contrainte, pas comme valeur...", date: "20 oct", messageCount: 52 },
 
-  { id: "c8", projectId: "plateforme-marque", title: "Brief — L'Atelier de la Durée", preview: "Route du Rhum 2026 comme fenêtre de lancement...", date: "1 déc", messageCount: 29 },
-  { id: "c9", projectId: "plateforme-marque", title: "Plateforme v1 — retours client", preview: "Marine valide l'essence mais demande plus de...", date: "12 déc", messageCount: 34 },
+  { id: "c8", clientId: "forge", projectId: "plateforme-marque", title: "Brief — L'Atelier de la Durée", preview: "Route du Rhum 2026 comme fenêtre de lancement...", date: "1 déc", messageCount: 29 },
+  { id: "c9", clientId: "forge", projectId: "plateforme-marque", title: "Plateforme v1 — retours client", preview: "Marine valide l'essence mais demande plus de...", date: "12 déc", messageCount: 34 },
+
+  // Globales client (sans projet)
+  { id: "cg1", clientId: "brutus", title: "Point général Brutus", preview: "Discussion sur la roadmap globale et les priorités...", date: "5 mars", messageCount: 8 },
+  { id: "cg2", clientId: "bloo-conseil", title: "Suivi relationnel", preview: "Échanges sur la collaboration et les prochaines étapes...", date: "22 oct", messageCount: 12 },
+  { id: "cg3", clientId: "forge", title: "Échanges généraux", preview: "Suivi de la relation et des projets en cours...", date: "15 déc", messageCount: 5 },
 ];
 
 // ─── Mock messages ────────────────────────────────────────────
@@ -453,6 +494,11 @@ export function getProjectDocs(projectId: string) {
 
 export function getConversations(projectId: string) {
   return CONVERSATIONS.filter((c) => c.projectId === projectId);
+}
+
+// Conversations globales client (hors projet)
+export function getClientConversations(clientId: string) {
+  return CONVERSATIONS.filter((c) => c.clientId === clientId && !c.projectId);
 }
 
 export function getBudgetProducts(projectId: string) {

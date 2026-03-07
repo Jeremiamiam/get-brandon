@@ -13,26 +13,25 @@ const TABS: { id: ClientCategory; label: string }[] = [
 
 export function ClientSidebar() {
   const pathname = usePathname();
-  const activeId = pathname.split("/")[1];
+  const activeId = pathname?.split("/")[1];
   const [tab, setTab] = useState<ClientCategory>("client");
-
   const clients = getClients(tab);
 
   return (
     <aside
-      className="fixed top-12 left-0 bottom-0 z-40 flex flex-col border-r border-zinc-800"
-      style={{ width: "var(--sidebar-w)", background: "#0c0c0e" }}
+      className="fixed top-12 left-0 bottom-0 z-40 flex flex-col border-r border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950"
+      style={{ width: "var(--sidebar-w)" }}
     >
       {/* ── Tab switcher ── */}
-      <div className="shrink-0 flex border-b border-zinc-800">
+      <div className="shrink-0 flex border-b border-zinc-200 dark:border-zinc-800">
         {TABS.map((t) => (
           <button
             key={t.id}
             onClick={() => setTab(t.id)}
             className={`flex-1 py-2.5 text-[11px] font-medium transition-colors ${
               tab === t.id
-                ? "text-zinc-200 border-b border-white -mb-px"
-                : "text-zinc-600 hover:text-zinc-400"
+                ? "text-zinc-800 border-b border-zinc-900 -mb-px dark:text-zinc-200 dark:border-white"
+                : "text-zinc-500 hover:text-zinc-600 dark:text-zinc-600 dark:hover:text-zinc-400"
             }`}
           >
             {t.label}
@@ -42,14 +41,14 @@ export function ClientSidebar() {
 
       {/* ── Search ── */}
       <div className="shrink-0 p-3">
-        <div className="flex items-center gap-2 bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2">
-          <svg className="w-3.5 h-3.5 text-zinc-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="flex items-center gap-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-2">
+          <svg className="w-3.5 h-3.5 text-zinc-500 dark:text-zinc-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
           <input
             type="text"
             placeholder="Rechercher…"
-            className="bg-transparent text-xs text-zinc-400 placeholder-zinc-600 outline-none w-full"
+            className="bg-transparent text-xs text-zinc-600 dark:text-zinc-400 placeholder-zinc-400 dark:placeholder-zinc-600 outline-none w-full"
           />
         </div>
       </div>
@@ -57,7 +56,7 @@ export function ClientSidebar() {
       {/* ── List ── */}
       <nav className="flex-1 overflow-y-auto px-2">
         {clients.length === 0 ? (
-          <p className="text-xs text-zinc-700 px-3 py-4">Aucun élément</p>
+          <p className="text-xs text-zinc-500 dark:text-zinc-700 px-3 py-4">Aucun élément</p>
         ) : (
           clients.map((client) => (
             <ClientItem key={client.id} client={client} active={client.id === activeId} />
@@ -66,8 +65,8 @@ export function ClientSidebar() {
       </nav>
 
       {/* ── Footer ── */}
-      <div className="shrink-0 p-3 border-t border-zinc-800">
-        <button className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-zinc-600 hover:text-zinc-400 hover:bg-zinc-900 transition-colors text-sm">
+      <div className="shrink-0 p-3 border-t border-zinc-200 dark:border-zinc-800">
+        <button className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-zinc-500 hover:text-zinc-700 hover:bg-zinc-100 dark:text-zinc-600 dark:hover:text-zinc-400 dark:hover:bg-zinc-900 transition-colors text-sm">
           <span className="text-base leading-none">+</span>
           <span>
             {tab === "client" ? "Nouveau client" : tab === "prospect" ? "Nouveau prospect" : "—"}
@@ -91,18 +90,20 @@ function ClientItem({ client, active }: { client: Client; active: boolean }) {
       href={`/${client.id}`}
       className={`flex items-center gap-3 px-2 py-2.5 rounded-lg mb-0.5 transition-all ${
         active
-          ? "bg-zinc-800 text-white"
-          : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900"
+          ? "bg-zinc-200 text-zinc-900 dark:bg-zinc-800 dark:text-white"
+          : "text-zinc-600 hover:text-zinc-800 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:text-zinc-200 dark:hover:bg-zinc-900"
       }`}
     >
       {/* Avatar */}
       <div
-        className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-xs font-bold"
-        style={{
-          background: active ? client.color + "30" : "#1c1c1f",
-          color: active ? client.color : "#71717a",
-          border: active ? `1px solid ${client.color}40` : "1px solid #27272a",
-        }}
+        className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-xs font-bold border ${
+          active ? "" : "bg-zinc-200 text-zinc-500 border-zinc-300 dark:bg-zinc-900 dark:text-zinc-500 dark:border-zinc-700"
+        }`}
+        style={active ? {
+          background: client.color + "30",
+          color: client.color,
+          borderColor: client.color + "40",
+        } : undefined}
       >
         {initials}
       </div>
@@ -112,7 +113,7 @@ function ClientItem({ client, active }: { client: Client; active: boolean }) {
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium truncate">{client.name}</span>
         </div>
-        <p className="text-[11px] text-zinc-600 mt-0.5 truncate">{client.industry}</p>
+        <p className="text-[11px] text-zinc-500 dark:text-zinc-600 mt-0.5 truncate">{client.industry}</p>
       </div>
     </Link>
   );

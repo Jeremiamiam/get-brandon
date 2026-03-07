@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Tailwind v4: dark mode via data-theme (plus fiable que .dark) */
+@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
+
 :root {
   --nav-h: 48px;
   --sidebar-w: 240px;
@@ -10,12 +13,34 @@
 
 html, body {
   height: 100%;
+  background: #fafafa;
+  color: #18181b;
+}
+
+html[data-theme="dark"],
+html[data-theme="dark"] body {
   background: #09090b;
   color: #e4e4e7;
+}
+
+/* Hide number input spinner arrows (pognon cells) */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  margin: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+input[type="number"] {
+  -moz-appearance: textfield !important;
+  appearance: textfield !important;
 }
 
 /* Thin scrollbar */
 ::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #27272a; border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: #3f3f46; }
+::-webkit-scrollbar-thumb { background: #d4d4d8; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #a1a1aa; }
+html[data-theme="dark"] ::-webkit-scrollbar-thumb { background: #27272a; }
+html[data-theme="dark"] ::-webkit-scrollbar-thumb:hover { background: #3f3f46; }
