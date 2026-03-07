@@ -1,0 +1,18 @@
+@import "tailwindcss";
+
+:root {
+  --font-syne: "Syne", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+  --accent: #22c55e;
+  --accent-dim: #16a34a;
+  --muted: #71717a;
+  --border: #27272a;
+}
+
+body {
+  font-family: var(--font-syne);
+}
+
+.font-mono {
+  font-family: var(--font-mono);
+}

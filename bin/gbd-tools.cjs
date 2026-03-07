@@ -6,15 +6,39 @@
  * Usage: node gbd-tools.cjs <command> [args]
  *
  * Commands:
- *   init <client-name>          Create project structure, return status JSON
- *   status <client-name>        Return available outputs JSON
- *   list-inputs <client-name>   List files in inputs/ with types
- *   timestamp [format]          Current date (full|date|filename) — default: date
- *   clients                     List all client projects with their status
+ *   init [client-name]                           Create project structure, return status JSON
+ *   status [client-name]                         Return available outputs + CLIENT-STATE data JSON
+ *   update-state [client-slug] <step> done [n]   Update CLIENT-STATE.md, return next_step
+ *   clients                                      List all client projects with their status
+ *   tally-create-form [client] <json>            Create Tally form from questions array, save form ID
+ *   tally-fetch-responses [client]               Fetch Tally form responses for client
+ *
+ * Mode CWD : si aucun [client-name], le répertoire courant EST le projet.
+ * Mode legacy : le projet est dans clients/<slug>/ depuis le répertoire courant.
  */
 
 const fs = require('fs');
 const path = require('path');
+const https = require('https');
+const crypto = require('crypto');
+
+// ─── Env ──────────────────────────────────────────────────────────────────────
+
+function loadEnv() {
+  const envPath = path.join(__dirname, '..', '.env');
+  if (!fs.existsSync(envPath)) return {};
+  const vars = {};
+  fs.readFileSync(envPath, 'utf8').split('\n').forEach(line => {
+    line = line.trim();
+    if (!line || line.startsWith('#')) return;
+    const eqIdx = line.indexOf('=');
+    if (eqIdx === -1) return;
+    vars[line.slice(0, eqIdx).trim()] = line.slice(eqIdx + 1).trim();
+  });
+  return vars;
+}
+
+const ENV = loadEnv();
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -42,6 +66,29 @@ function slugify(text) {
     .replace(/[\u0300-\u036f]/g, '')
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
+}
+
+/**
+ * resolveProject(cwd, nameOrNull)
+ * Mode CWD : si nameOrNull est vide/null, le CWD EST le projet.
+ * Mode legacy : le projet est dans clients/<slug>/ depuis cwd.
+ */
+function resolveProject(cwd, nameOrNull) {
+  if (!nameOrNull || nameOrNull.trim() === '') {
+    return {
+      mode: 'cwd',
+      clientDir: cwd,
+      clientSlug: slugify(path.basename(cwd)),
+      clientName: path.basename(cwd),
+    };
+  }
+  const slug = slugify(nameOrNull);
+  return {
+    mode: 'legacy',
+    clientDir: getClientDir(cwd, slug),
+    clientSlug: slug,
+    clientName: nameOrNull,
+  };
 }
 
 function fileExists(filePath) {
@@ -80,7 +127,7 @@ function getInputFiles(clientDir) {
 
 function getOutputStatus(clientDir) {
   const outputs = {
-    contre_brief: fileExists(path.join(clientDir, 'outputs', 'CONTRE-BRIEF.json')),
+    brief_strategique: fileExists(path.join(clientDir, 'outputs', 'BRIEF-STRATEGIQUE.json')),
     platform: fileExists(path.join(clientDir, 'outputs', 'PLATFORM.json')),
     campaign: fileExists(path.join(clientDir, 'outputs', 'CAMPAIGN.json')),
     site: fileExists(path.join(clientDir, 'outputs', 'SITE.json')),
@@ -89,21 +136,102 @@ function getOutputStatus(clientDir) {
   return outputs;
 }
 
+// ─── State helpers ────────────────────────────────────────────────────────────
+
+/**
+ * Extract lines from a markdown section (between ## Header and next ## Header).
+ * Returns an array of non-empty lines (excluding the header itself).
+ */
+function extractSection(content, sectionHeader) {
+  const lines = content.split('\n');
+  const start = lines.findIndex(l => l.trim() === sectionHeader);
+  if (start === -1) return [];
+
+  const result = [];
+  for (let i = start + 1; i < lines.length; i++) {
+    if (lines[i].startsWith('## ')) break;
+    const line = lines[i].trim();
+    if (line && line !== '- (aucun)') result.push(line);
+  }
+  return result;
+}
+
+/**
+ * Parse step completion dates from a CLIENT-STATE.md pipeline section.
+ * Returns { start: 'YYYY-MM-DD', platform: 'YYYY-MM-DD', ... }
+ */
+function extractStepDates(content) {
+  const dates = {};
+  const labelToKey = {
+    'Brief stratégique': 'start',
+    'Plateforme de marque': 'platform',
+    'Campagne': 'campaign',
+    'Site web': 'site',
+    'Wiki': 'wiki',
+  };
+
+  for (const line of content.split('\n')) {
+    const match = line.match(/- \[x\] (.+?) — (\d{4}-\d{2}-\d{2})/);
+    if (match && labelToKey[match[1]]) {
+      dates[labelToKey[match[1]]] = match[2];
+    }
+  }
+  return dates;
+}
+
+/**
+ * Parse "## Décisions clés" section from CLIENT-STATE.md.
+ * Returns { angle_retenu: '...', essence: '...', posture_agence: '...' }
+ */
+function extractDecisionsFromStateFile(content) {
+  const decisions = {};
+  const lines = content.split('\n');
+  const start = lines.findIndex(l => l.trim() === '## Décisions clés');
+  if (start === -1) return decisions;
+
+  for (let i = start + 1; i < lines.length; i++) {
+    if (lines[i].startsWith('## ')) break;
+    const match = lines[i].match(/^- (.+?) : "?(.+?)"?\s*$/);
+    if (match) {
+      const key = match[1].toLowerCase().replace(/[^a-z0-9]+/g, '_');
+      decisions[key] = match[2];
+    }
+  }
+  return decisions;
+}
+
+/**
+ * Extract brand decisions (angle, essence, posture) from BRIEF-STRATEGIQUE.json output.
+ */
+function extractDecisionsFromOutputs(clientDir) {
+  const decisions = {};
+  const briefPath = path.join(clientDir, 'outputs', 'BRIEF-STRATEGIQUE.json');
+
+  if (fileExists(briefPath)) {
+    try {
+      const brief = JSON.parse(fs.readFileSync(briefPath, 'utf8'));
+      if (brief.angle_strategique?.titre) decisions['Angle retenu'] = brief.angle_strategique.titre;
+      if (brief.plateforme?.essence) decisions['Essence'] = brief.plateforme.essence;
+      if (brief.meta?.mode_agence) decisions['Posture agence'] = brief.meta.mode_agence;
+    } catch {}
+  }
+
+  return decisions;
+}
+
 // ─── Commands ─────────────────────────────────────────────────────────────────
 
 /**
- * init <client-name>
+ * init [client-name]
  * Create project structure. Return JSON with status.
+ * Mode CWD si client-name absent : structure créée dans cwd.
  */
 function cmdInit(cwd, clientName) {
-  if (!clientName) err('client-name requis. Usage: gbd-tools init <client-name>');
-
-  const slug = slugify(clientName);
-  const clientDir = getClientDir(cwd, slug);
+  const project = resolveProject(cwd, clientName);
+  const { clientDir, clientSlug, clientName: name, mode } = project;
   const exists = fileExists(clientDir);
 
   if (!exists) {
-    // Create full structure
     fs.mkdirSync(path.join(clientDir, 'inputs'), { recursive: true });
     fs.mkdirSync(path.join(clientDir, 'session'), { recursive: true });
     fs.mkdirSync(path.join(clientDir, 'outputs'), { recursive: true });
@@ -113,8 +241,8 @@ function cmdInit(cwd, clientName) {
   const outputs = getOutputStatus(clientDir);
 
   out({
-    client_name: clientName,
-    client_slug: slug,
+    client_name: name,
+    client_slug: clientSlug,
     client_dir: clientDir,
     inputs_dir: path.join(clientDir, 'inputs'),
     outputs_dir: path.join(clientDir, 'outputs'),
@@ -123,24 +251,25 @@ function cmdInit(cwd, clientName) {
     input_count: inputs.length,
     inputs: inputs,
     outputs: outputs,
+    mode,
   });
 }
 
 /**
- * status <client-name>
+ * status [client-name]
  * Return JSON with available outputs and overall project status.
+ * Mode CWD si client-name absent.
  */
 function cmdStatus(cwd, clientName) {
-  if (!clientName) err('client-name requis. Usage: gbd-tools status <client-name>');
-
-  const slug = slugify(clientName);
-  const clientDir = getClientDir(cwd, slug);
+  const project = resolveProject(cwd, clientName);
+  const { clientDir, clientSlug, clientName: name, mode } = project;
 
   if (!fileExists(clientDir)) {
+    const suggestion = mode === 'cwd' ? '/gbd:start' : `/gbd:start ${name}`;
     out({
       found: false,
-      client_slug: slug,
-      message: `Projet "${clientName}" non trouvé. Lance /gbd_start ${clientName}`,
+      client_slug: clientSlug,
+      message: `Projet "${name}" non trouvé. Lance ${suggestion}`,
     });
     return;
   }
@@ -149,70 +278,46 @@ function cmdStatus(cwd, clientName) {
   const outputs = getOutputStatus(clientDir);
 
   const steps = [
-    { key: 'contre_brief', label: 'Contre-brief', command: 'gbd_start' },
-    { key: 'platform', label: 'Plateforme de marque', command: 'gbd_platform' },
-    { key: 'campaign', label: 'Campagne', command: 'gbd_campaign' },
-    { key: 'site', label: 'Site web', command: 'gbd_site' },
-    { key: 'wiki', label: 'Wiki', command: 'gbd_wiki' },
+    { key: 'brief_strategique', label: 'Brief stratégique',    cmd: '/gbd:start'    },
+    { key: 'platform',          label: 'Plateforme de marque', cmd: '/gbd:platform' },
+    { key: 'campaign',          label: 'Campagne',             cmd: '/gbd:campaign' },
+    { key: 'site',              label: 'Site web',             cmd: '/gbd:site'     },
+    { key: 'wiki',              label: 'Wiki',                 cmd: '/gbd:wiki'     },
   ];
 
   const completed = steps.filter(s => outputs[s.key]).length;
   const next = steps.find(s => !outputs[s.key]);
 
+  // Read CLIENT-STATE.md if available
+  const statePath = path.join(clientDir, 'session', 'CLIENT-STATE.md');
+  let clientState = null;
+  if (fileExists(statePath)) {
+    const stateContent = fs.readFileSync(statePath, 'utf8');
+    const derniereSession = extractSection(stateContent, '## Dernière session');
+    clientState = {
+      decisions: extractDecisionsFromStateFile(stateContent),
+      points_ouverts: extractSection(stateContent, '## Points ouverts'),
+      derniere_session: derniereSession,
+    };
+  }
+
+  const nextCmd = next
+    ? (mode === 'cwd' ? next.cmd : `${next.cmd} ${clientSlug}`)
+    : null;
+
   out({
     found: true,
-    client_name: clientName,
-    client_slug: slug,
+    client_name: name,
+    client_slug: clientSlug,
     client_dir: clientDir,
     input_count: inputs.length,
     inputs: inputs,
     outputs: outputs,
     progress: `${completed}/${steps.length}`,
-    next_step: next ? { label: next.label, command: `/${next.command} ${clientName}` } : null,
+    next_step: next ? { label: next.label, command: nextCmd } : null,
+    client_state: clientState,
+    mode,
   });
-}
-
-/**
- * list-inputs <client-name>
- * List all files in inputs/ with their types.
- */
-function cmdListInputs(cwd, clientName) {
-  if (!clientName) err('client-name requis. Usage: gbd-tools list-inputs <client-name>');
-
-  const slug = slugify(clientName);
-  const clientDir = getClientDir(cwd, slug);
-  const inputs = getInputFiles(clientDir);
-
-  out({
-    client_slug: slug,
-    inputs_dir: path.join(clientDir, 'inputs'),
-    count: inputs.length,
-    files: inputs,
-  });
-}
-
-/**
- * timestamp [format]
- * Returns current date. Formats: full (ISO), date (YYYY-MM-DD), filename (YYYY-MM-DD)
- */
-function cmdTimestamp(format) {
-  const now = new Date();
-
-  switch (format) {
-    case 'full':
-      out(now.toISOString());
-      break;
-    case 'filename':
-      out(now.toISOString().slice(0, 10));
-      break;
-    case 'fr': {
-      const opts = { day: 'numeric', month: 'long', year: 'numeric' };
-      out(now.toLocaleDateString('fr-FR', opts));
-      break;
-    }
-    default:
-      out(now.toISOString().slice(0, 10));
-  }
 }
 
 /**
@@ -223,7 +328,7 @@ function cmdClients(cwd) {
   const clientsDir = getClientsDir(cwd);
 
   if (!fileExists(clientsDir)) {
-    out({ count: 0, clients: [], message: 'Aucun projet client. Lance /gbd_start <client-name>' });
+    out({ count: 0, clients: [], message: 'Aucun projet client. Lance /gbd:start <client-name>' });
     return;
   }
 
@@ -297,16 +402,324 @@ function cmdWriteJson(filePath, jsonString) {
 }
 
 /**
- * write-session <client-name> <filename> <content>
+ * write-session [client-name] <filename> <content>
  * Write a file to session/.
+ * Mode CWD si client-name absent (détecté si args[1] a une extension).
  */
 function cmdWriteSession(cwd, clientName, filename, content) {
-  const slug = slugify(clientName);
-  const sessionDir = path.join(getClientDir(cwd, slug), 'session');
+  const project = resolveProject(cwd, clientName);
+  const sessionDir = path.join(project.clientDir, 'session');
   fs.mkdirSync(sessionDir, { recursive: true });
   const filePath = path.join(sessionDir, filename);
   fs.writeFileSync(filePath, content, 'utf8');
   out({ success: true, path: filePath });
+}
+
+/**
+ * update-state [client-slug] <step> done [notes]
+ * Writes/updates session/CLIENT-STATE.md with current pipeline status and decisions.
+ * step: start | platform | campaign | site | wiki
+ * Mode CWD si args[1] est un step valide (pas de slug).
+ * Returns { success, path, next_step, decisions }.
+ */
+function cmdUpdateState(cwd, clientSlugOrNull, step, status, notes) {
+  if (!step) err('step requis (start|platform|campaign|site|wiki).');
+
+  const validSteps = ['start', 'platform', 'campaign', 'site', 'wiki'];
+  if (!validSteps.includes(step)) {
+    err(`step invalide : "${step}". Valeurs acceptées : ${validSteps.join(', ')}`);
+  }
+
+  const project = resolveProject(cwd, clientSlugOrNull);
+  const { clientDir, clientSlug, clientName, mode } = project;
+  const statePath = path.join(clientDir, 'session', 'CLIENT-STATE.md');
+  const today = new Date().toISOString().slice(0, 10);
+
+  const outputs = getOutputStatus(clientDir);
+
+  // Preserve existing step dates and points ouverts
+  let existingDates = {};
+  let pointsOuverts = [];
+  if (fileExists(statePath)) {
+    const existing = fs.readFileSync(statePath, 'utf8');
+    existingDates = extractStepDates(existing);
+    pointsOuverts = extractSection(existing, '## Points ouverts');
+  }
+
+  // Mark current step as done today
+  if (status === 'done') existingDates[step] = today;
+
+  // Extract brand decisions from JSON outputs
+  const decisions = extractDecisionsFromOutputs(clientDir);
+
+  const stepConfig = [
+    { key: 'start',    outputKey: 'brief_strategique', label: 'Brief stratégique',    cmd: '/gbd:start'    },
+    { key: 'platform', outputKey: 'platform',           label: 'Plateforme de marque', cmd: '/gbd:platform' },
+    { key: 'campaign', outputKey: 'campaign',           label: 'Campagne',             cmd: '/gbd:campaign' },
+    { key: 'site',     outputKey: 'site',               label: 'Site web',             cmd: '/gbd:site'     },
+    { key: 'wiki',     outputKey: 'wiki',               label: 'Wiki',                 cmd: '/gbd:wiki'     },
+  ];
+
+  // Determine which steps are completed (output exists OR just marked done)
+  const completedKeys = new Set([
+    ...stepConfig.filter(s => outputs[s.outputKey]).map(s => s.key),
+    ...(status === 'done' ? [step] : []),
+  ]);
+
+  // Find next incomplete step
+  const nextStep = stepConfig.find(s => !completedKeys.has(s.key));
+  const nextCmd = nextStep
+    ? (mode === 'cwd' ? nextStep.cmd : `${nextStep.cmd} ${clientSlug}`)
+    : null;
+
+  // Build markdown
+  const lines = [
+    `# État du projet — ${clientName}`,
+    `*Dernière mise à jour : ${today}*`,
+    '',
+    '## Pipeline',
+  ];
+
+  for (const s of stepConfig) {
+    const done = completedKeys.has(s.key);
+    const date = existingDates[s.key] || today;
+    lines.push(done ? `- [x] ${s.label} — ${date}` : `- [ ] ${s.label}`);
+  }
+
+  lines.push('');
+  lines.push('## Prochaine étape');
+  lines.push(nextCmd || 'Projet complet ✓');
+
+  lines.push('');
+  lines.push('## Décisions clés');
+  if (Object.keys(decisions).length > 0) {
+    for (const [k, v] of Object.entries(decisions)) lines.push(`- ${k} : "${v}"`);
+  } else {
+    lines.push('- (à compléter après le brief stratégique)');
+  }
+
+  lines.push('');
+  lines.push('## Points ouverts');
+  if (pointsOuverts.length > 0) {
+    lines.push(...pointsOuverts);
+  } else {
+    lines.push('- (aucun)');
+  }
+
+  lines.push('');
+  lines.push('## Dernière session');
+  lines.push(`Date : ${today}`);
+  const stepLabel = stepConfig.find(s => s.key === step)?.label || step;
+  lines.push(`Fait : ${notes || `${stepLabel} terminé`}`);
+  lines.push('');
+
+  fs.mkdirSync(path.dirname(statePath), { recursive: true });
+  fs.writeFileSync(statePath, lines.join('\n'), 'utf8');
+
+  out({ success: true, path: statePath, next_step: nextCmd, decisions });
+}
+
+// ─── Tally helpers ────────────────────────────────────────────────────────────
+
+function tallyRequest(method, endpoint, body, apiKey) {
+  return new Promise((resolve, reject) => {
+    const postData = body ? JSON.stringify(body) : null;
+    const options = {
+      hostname: 'api.tally.so',
+      path: endpoint,
+      method,
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+        ...(postData ? { 'Content-Length': Buffer.byteLength(postData) } : {}),
+      },
+    };
+
+    const req = https.request(options, res => {
+      let data = '';
+      res.on('data', chunk => data += chunk);
+      res.on('end', () => {
+        try {
+          resolve({ status: res.statusCode, body: JSON.parse(data) });
+        } catch {
+          resolve({ status: res.statusCode, body: data });
+        }
+      });
+    });
+
+    req.on('error', reject);
+    if (postData) req.write(postData);
+    req.end();
+  });
+}
+
+function questionsToBlocks(questions) {
+  const blocks = [];
+  for (const q of questions) {
+    const text = q.text || q;
+    const required = q.required !== false;
+
+    // TITLE block — question label
+    blocks.push({
+      uuid: crypto.randomUUID(),
+      type: 'TITLE',
+      groupUuid: crypto.randomUUID(),
+      groupType: 'QUESTION',
+      payload: {
+        safeHTMLSchema: [[text]],
+      },
+    });
+
+    // TEXTAREA block — answer input
+    blocks.push({
+      uuid: crypto.randomUUID(),
+      type: 'TEXTAREA',
+      groupUuid: crypto.randomUUID(),
+      groupType: 'TEXTAREA',
+      payload: {
+        isRequired: required,
+        hasMinCharacters: false,
+        hasMaxCharacters: false,
+        hasDefaultAnswer: false,
+        placeholder: 'Votre réponse...',
+      },
+    });
+  }
+  return blocks;
+}
+
+/**
+ * tally-create-form [client-name] <questions-json>
+ * Creates a Tally form from a JSON array of questions.
+ * Saves form metadata to session/TALLY-FORM.json.
+ * Mode CWD si questions-json est le premier arg (commence par '[' ou '{').
+ */
+async function cmdTallyCreateForm(cwd, clientName, questionsJson) {
+  if (!questionsJson) err('questions-json requis.');
+
+  const apiKey = ENV.TALLY_API_KEY;
+  if (!apiKey) err('TALLY_API_KEY manquante dans .env');
+
+  let questions;
+  try {
+    questions = JSON.parse(questionsJson);
+  } catch (e) {
+    err(`JSON invalide : ${e.message}`);
+  }
+
+  const project = resolveProject(cwd, clientName);
+  const { clientDir, clientName: name } = project;
+
+  const titleUuid = crypto.randomUUID();
+  const titleBlock = {
+    uuid: titleUuid,
+    type: 'FORM_TITLE',
+    groupUuid: crypto.randomUUID(),
+    groupType: 'FORM_TITLE',
+    payload: {
+      title: `Brief client — ${name}`,
+      safeHTMLSchema: [[`Brief client — ${name}`]],
+      button: { label: 'Envoyer' },
+    },
+  };
+
+  const blocks = [titleBlock, ...questionsToBlocks(questions)];
+
+  const payload = {
+    name: `Brief client — ${name}`,
+    status: 'PUBLISHED',
+    blocks,
+  };
+
+  let res;
+  try {
+    res = await tallyRequest('POST', '/forms', payload, apiKey);
+  } catch (e) {
+    err(`Erreur réseau Tally : ${e.message}`);
+  }
+
+  if (res.status !== 200 && res.status !== 201) {
+    err(`Tally API erreur ${res.status} : ${JSON.stringify(res.body)}`);
+  }
+
+  const form = res.body;
+  const formId = form.id;
+  const formUrl = `https://tally.so/r/${formId}`;
+
+  // Save to session
+  const sessionDir = path.join(clientDir, 'session');
+  fs.mkdirSync(sessionDir, { recursive: true });
+  const tallyFile = path.join(sessionDir, 'TALLY-FORM.json');
+  fs.writeFileSync(tallyFile, JSON.stringify({
+    form_id: formId,
+    form_url: formUrl,
+    created_at: new Date().toISOString(),
+    client: name,
+    questions: questions,
+  }, null, 2), 'utf8');
+
+  out({
+    success: true,
+    form_id: formId,
+    form_url: formUrl,
+    question_count: questions.length,
+    session_file: tallyFile,
+  });
+}
+
+/**
+ * tally-fetch-responses [client-name]
+ * Fetches submissions from the Tally form saved for this client.
+ * Mode CWD si client-name absent.
+ */
+async function cmdTallyFetchResponses(cwd, clientName) {
+  const apiKey = ENV.TALLY_API_KEY;
+  if (!apiKey) err('TALLY_API_KEY manquante dans .env');
+
+  const project = resolveProject(cwd, clientName);
+  const { clientDir, clientName: name } = project;
+  const tallyFile = path.join(clientDir, 'session', 'TALLY-FORM.json');
+
+  if (!fileExists(tallyFile)) {
+    err(`Aucun form Tally trouvé pour ${name}. Lance d'abord tally-create-form.`);
+  }
+
+  const formMeta = JSON.parse(fs.readFileSync(tallyFile, 'utf8'));
+  const formId = formMeta.form_id;
+
+  let res;
+  try {
+    res = await tallyRequest('GET', `/forms/${formId}/submissions`, null, apiKey);
+  } catch (e) {
+    err(`Erreur réseau Tally : ${e.message}`);
+  }
+
+  if (res.status !== 200) {
+    err(`Tally API erreur ${res.status} : ${JSON.stringify(res.body)}`);
+  }
+
+  const { submissions = [], questions = [], totalNumberOfSubmissionsPerFilter = {} } = res.body;
+  const completed = submissions.filter(s => s.isCompleted);
+
+  // Build question map for readable output
+  const qMap = {};
+  questions.forEach(q => { qMap[q.id] = q.title; });
+
+  const formatted = completed.map(sub => ({
+    submitted_at: sub.submittedAt,
+    answers: sub.responses.map(r => ({
+      question: qMap[r.questionId] || r.questionId,
+      answer: r.formattedAnswer || r.answer,
+    })),
+  }));
+
+  out({
+    form_id: formId,
+    form_url: formMeta.form_url,
+    total: totalNumberOfSubmissionsPerFilter.all || 0,
+    completed: totalNumberOfSubmissionsPerFilter.completed || 0,
+    submissions: formatted,
+  });
 }
 
 // ─── Router ───────────────────────────────────────────────────────────────────
@@ -317,8 +730,10 @@ function main() {
   const cwd = process.cwd();
 
   if (!command) {
-    err('Usage: gbd-tools <command> [args]\nCommands: init, status, list-inputs, timestamp, clients, read-json, write-json, write-session');
+    err('Usage: gbd-tools <command> [args]\nCommands: init, status, update-state, clients, read-json, write-json, write-session, tally-create-form, tally-fetch-responses');
   }
+
+  const validSteps = ['start', 'platform', 'campaign', 'site', 'wiki'];
 
   switch (command) {
     case 'init':
@@ -327,11 +742,13 @@ function main() {
     case 'status':
       cmdStatus(cwd, args[1]);
       break;
-    case 'list-inputs':
-      cmdListInputs(cwd, args[1]);
-      break;
-    case 'timestamp':
-      cmdTimestamp(args[1] || 'date');
+    case 'update-state':
+      // CWD mode si args[1] est un step valide (pas de slug en préfixe)
+      if (validSteps.includes(args[1])) {
+        cmdUpdateState(cwd, null, args[1], args[2] || 'done', args.slice(3).join(' '));
+      } else {
+        cmdUpdateState(cwd, args[1], args[2], args[3] || 'done', args.slice(4).join(' '));
+      }
       break;
     case 'clients':
       cmdClients(cwd);
@@ -340,14 +757,29 @@ function main() {
       cmdReadJson(args[1]);
       break;
     case 'write-json':
-      // Args after filepath are joined as the JSON string (handles spaces)
       cmdWriteJson(args[1], args.slice(2).join(' '));
       break;
     case 'write-session':
-      cmdWriteSession(cwd, args[1], args[2], args.slice(3).join(' '));
+      // CWD mode si args[1] a une extension (c'est un nom de fichier, pas un client)
+      if (args[1] && path.extname(args[1])) {
+        cmdWriteSession(cwd, null, args[1], args.slice(2).join(' '));
+      } else {
+        cmdWriteSession(cwd, args[1], args[2], args.slice(3).join(' '));
+      }
+      break;
+    case 'tally-create-form':
+      // CWD mode si args[1] commence par '[' ou '{' (JSON, pas client-name)
+      if (args[1] && (args[1].startsWith('[') || args[1].startsWith('{'))) {
+        cmdTallyCreateForm(cwd, null, args.slice(1).join(' ')).catch(e => err(e.message));
+      } else {
+        cmdTallyCreateForm(cwd, args[1], args.slice(2).join(' ')).catch(e => err(e.message));
+      }
+      break;
+    case 'tally-fetch-responses':
+      cmdTallyFetchResponses(cwd, args[1] || null).catch(e => err(e.message));
       break;
     default:
-      err(`Commande inconnue : ${command}\nDisponibles : init, status, list-inputs, timestamp, clients, read-json, write-json, write-session`);
+      err(`Commande inconnue : ${command}\nDisponibles : init, status, update-state, clients, read-json, write-json, write-session, tally-create-form, tally-fetch-responses`);
   }
 }
 

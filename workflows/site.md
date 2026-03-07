@@ -45,6 +45,18 @@ Aucune plateforme trouvée pour [client-name].
 Lance d'abord : /gbd_platform [client-name]
 ```
 
+Charger le contexte du projet si disponible :
+```
+node gbd-tools.cjs status <client-slug>
+```
+Si `client_state` est présent dans le résultat, afficher :
+```
+Contexte de la session précédente :
+[decisions.angle_retenu si présent]
+[decisions.essence si présent]
+[points_ouverts si non vides]
+```
+
 Afficher :
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -241,6 +253,11 @@ Ces pages sont les plus critiques — les soumettre explicitement à validation 
 </step>
 
 <step name="confirm">
+Mettre à jour l'état du projet :
+```
+node gbd-tools.cjs update-state <client-slug> site done
+```
+
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
  GBD ► SITE CRÉÉ
@@ -259,7 +276,7 @@ Pages principales :
 ▶ Livrables disponibles
 
 clients/[client-name]/outputs/
-  CONTRE-BRIEF.json
+  BRIEF-STRATEGIQUE.json
   PLATFORM.json
   CAMPAIGN.json
   SITE.json

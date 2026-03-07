@@ -1,7 +1,7 @@
 <purpose>
-Générer la plateforme de marque complète depuis le CONTRE-BRIEF.json.
+Générer la plateforme de marque complète depuis le BRIEF-STRATEGIQUE.json.
 
-La plupart des décisions stratégiques sont déjà verrouillées dans le contre-brief.
+La plupart des décisions stratégiques sont déjà verrouillées dans le brief stratégique.
 Ce workflow les développe, les complète, et les met en forme dans un document
 de 10 pages prêt à présenter — et dans un JSON structuré pour Figma Slides.
 
@@ -16,17 +16,17 @@ La plateforme se compose de 10 pages :
 | # | Page | Source principale |
 |---|------|-------------------|
 | 1 | Couverture | meta du projet |
-| 2 | Diagnostic de marque | contexte du contre-brief |
-| 3 | Raison d'être | raison_detre du contre-brief |
+| 2 | Diagnostic de marque | contexte du brief stratégique |
+| 3 | Raison d'être | raison_detre du brief stratégique |
 | 4 | Vision & Mission | dérivé de raison_detre + angle |
 | 5 | Valeurs | dérivé de personnalite + angle |
 | 6 | Cible & Personas | dérivé du dossier client + cible |
-| 7 | Positionnement | positionnement du contre-brief |
-| 8 | Personnalité & Ton | personnalite + tone_of_voice du contre-brief |
-| 9 | Essence & Manifeste | essence du contre-brief + manifeste à générer |
+| 7 | Positionnement | positionnement du brief stratégique |
+| 8 | Personnalité & Ton | personnalite + tone_of_voice du brief stratégique |
+| 9 | Essence & Manifeste | essence du brief stratégique + manifeste à générer |
 | 10 | Territoire d'expression | dérivé de personnalite + tone_of_voice |
 
-Pages 1, 3, 7, 8 : contenu quasi-direct depuis le contre-brief — à mettre en forme.
+Pages 1, 3, 7, 8 : contenu quasi-direct depuis le brief stratégique — à mettre en forme.
 Pages 2, 4, 5, 6, 9, 10 : contenu à générer avec validation.
 </platform_structure>
 
@@ -45,12 +45,12 @@ Pages 2, 4, 5, 6, 9, 10 : contenu à générer avec validation.
 Charger le projet client.
 
 ```
-CONTRE-BRIEF = clients/[client-name]/outputs/CONTRE-BRIEF.json
+BRIEF_STRATEGIQUE = clients/[client-name]/outputs/BRIEF-STRATEGIQUE.json
 ```
 
 Si le fichier n'existe pas :
 ```
-Aucun contre-brief trouvé pour [client-name].
+Aucun brief stratégique trouvé pour [client-name].
 Lance d'abord : /gbd_start [client-name]
 ```
 
@@ -67,13 +67,26 @@ Mode agence : [meta.mode_agence]
 Génération en cours...
 ```
 
-Vérifier que les champs critiques sont présents dans le contre-brief :
+Vérifier que les champs critiques sont présents dans le brief stratégique :
 - plateforme.raison_detre
 - plateforme.positionnement.phrase_complete
 - plateforme.personnalite.traits
 - plateforme.essence
 
-Si un champ critique est vide : signaler et demander de compléter le contre-brief avant de continuer.
+Si un champ critique est vide : signaler et demander de compléter le brief stratégique avant de continuer.
+
+Charger le contexte du projet si disponible :
+```
+node gbd-tools.cjs status <client-slug>
+```
+Si `client_state` est présent dans le résultat, afficher :
+```
+Contexte de la session précédente :
+[decisions.angle_retenu si présent]
+[decisions.essence si présent]
+[decisions.posture_agence si présent]
+[points_ouverts si non vides]
+```
 </step>
 
 <step name="generate_pages">
@@ -104,7 +117,7 @@ Champs JSON :
 ---
 
 ### PAGE 2 — Diagnostic de marque
-*Source : contexte du contre-brief → développer en narration*
+*Source : contexte du brief stratégique → développer en narration*
 
 À partir de : concurrents_redoutes, repoussoirs, angle_strategique, dossier client.
 
@@ -119,7 +132,7 @@ L'insight est la phrase la plus importante de cette page. Il doit être spécifi
 ---
 
 ### PAGE 3 — Raison d'être
-*Source : plateforme.raison_detre (direct depuis contre-brief)*
+*Source : plateforme.raison_detre (direct depuis brief stratégique)*
 
 Mettre en forme :
 - La phrase de raison d'être en grand format typographique
@@ -165,7 +178,7 @@ Les personas ne sont pas des tableaux démographiques. Ce sont des portraits viv
 ---
 
 ### PAGE 7 — Positionnement
-*Source : plateforme.positionnement (direct depuis contre-brief)*
+*Source : plateforme.positionnement (direct depuis brief stratégique)*
 
 Mettre en forme :
 1. La phrase de positionnement complète
@@ -175,7 +188,7 @@ Mettre en forme :
 ---
 
 ### PAGE 8 — Personnalité & Ton
-*Source : plateforme.personnalite + plateforme.tone_of_voice (direct depuis contre-brief)*
+*Source : plateforme.personnalite + plateforme.tone_of_voice (direct depuis brief stratégique)*
 
 Mettre en forme :
 1. Les traits de personnalité avec leurs descripteurs
@@ -188,7 +201,7 @@ Mettre en forme :
 ### PAGE 9 — Essence & Manifeste
 *Source : plateforme.essence (direct) + manifeste à générer*
 
-**Essence** : telle quelle depuis le contre-brief. Mise en forme typographique forte.
+**Essence** : telle quelle depuis le brief stratégique. Mise en forme typographique forte.
 
 **Manifeste** : à générer. C'est la page la plus exigeante.
 
@@ -409,6 +422,11 @@ Intégrer les retours et mettre à jour le contenu avant d'écrire le JSON final
 </step>
 
 <step name="confirm">
+Mettre à jour l'état du projet :
+```
+node gbd-tools.cjs update-state <client-slug> platform done
+```
+
 Afficher le résumé :
 
 ```
@@ -444,7 +462,7 @@ Génère les guidelines visuelles depuis la plateforme.
 </process>
 
 <success_criteria>
-- CONTRE-BRIEF.json chargé et validé
+- BRIEF-STRATEGIQUE.json chargé et validé
 - 10 pages générées sans contenu générique
 - Chaque formulation passe le test : inapplicable mot pour mot à un concurrent
 - Valeurs, manifeste et territoire validés par l'utilisateur

@@ -37,7 +37,7 @@ est là pour ceux qui veulent creuser.
 Identifier les JSONs disponibles dans `clients/[client-name]/outputs/`.
 
 Charger ceux qui existent parmi :
-- CONTRE-BRIEF.json
+- BRIEF-STRATEGIQUE.json
 - PLATFORM.json
 - CAMPAIGN.json
 - SITE.json
@@ -47,6 +47,12 @@ Si aucun JSON disponible :
 Aucun livrable trouvé pour [client-name].
 Lance d'abord : /gbd_start [client-name]
 ```
+
+Charger le contexte du projet si disponible :
+```
+node gbd-tools.cjs status <client-slug>
+```
+Si `client_state.decisions` est présent, en tenir compte pour personnaliser les TL;DR.
 
 Construire la liste des sections à inclure selon ce qui est disponible.
 </step>
@@ -134,6 +140,18 @@ Générer le fichier HTML complet.
       letter-spacing: 0.1em;
       color: #bbb;
       padding: 16px 10px 4px;
+    }
+
+    .sidebar-nav a.nav-sub {
+      padding-left: 20px;
+      font-size: 12px;
+      color: #888;
+    }
+
+    .sidebar-nav a.nav-sub:hover,
+    .sidebar-nav a.nav-sub.active {
+      background: #efefef;
+      color: #1a1a1a;
     }
 
     /* Main content */
@@ -349,8 +367,19 @@ Générer le fichier HTML complet.
     <ul class="sidebar-nav">
       <li class="nav-section-label">Livrables</li>
       <!-- Générer un lien par section disponible -->
-      [SI CONTRE-BRIEF] <li><a href="#contre-brief">Contre-brief</a></li>
-      [SI PLATFORM] <li><a href="#plateforme">Plateforme de marque</a></li>
+      [SI BRIEF-STRATEGIQUE] <li><a href="#brief-strategique">Brief stratégique</a></li>
+      [SI PLATFORM]
+        <li><a href="#portrait">Portrait de marque</a></li>
+        <li><a href="#diagnostic">Diagnostic de marque</a></li>
+        <li><a href="#raison-detre" class="nav-sub">Raison d'être</a></li>
+        <li><a href="#vision-mission" class="nav-sub">Vision & Mission</a></li>
+        <li><a href="#valeurs" class="nav-sub">Valeurs</a></li>
+        <li><a href="#personas" class="nav-sub">Cible & Personas</a></li>
+        <li><a href="#positionnement" class="nav-sub">Positionnement</a></li>
+        <li><a href="#personnalite" class="nav-sub">Personnalité & Ton</a></li>
+        <li><a href="#essence" class="nav-sub">Essence & Manifeste</a></li>
+        <li><a href="#territoire" class="nav-sub">Territoire</a></li>
+      [/SI PLATFORM]
       [SI CAMPAIGN] <li><a href="#campagne">Campagne</a></li>
       [SI SITE] <li><a href="#site">Site web</a></li>
     </ul>
@@ -358,8 +387,8 @@ Générer le fichier HTML complet.
 
   <main class="main">
 
-    <!-- SECTION CONTRE-BRIEF (si disponible) -->
-    <section class="section" id="contre-brief">
+    <!-- SECTION BRIEF-STRATEGIQUE (si disponible) -->
+    <section class="section" id="brief stratégique">
       <div class="section-label">Livrable 1</div>
       <h1 class="section-title">Contre-brief</h1>
 
@@ -367,7 +396,7 @@ Générer le fichier HTML complet.
       <div class="tldr">
         <div class="tldr-label">TL;DR — 30 secondes</div>
         <ul>
-          <!-- 4-5 points max, extraits des données clés du contre-brief -->
+          <!-- 4-5 points max, extraits des données clés du brief stratégique -->
           <li>[Déclencheur en 1 ligne]</li>
           <li>[Angle retenu en 1 ligne]</li>
           <li>[Discriminant en 1 ligne]</li>
@@ -412,12 +441,44 @@ Générer le fichier HTML complet.
 
     </section>
 
-    <!-- SECTION PLATEFORME DE MARQUE (si disponible) -->
-    <section class="section" id="plateforme">
-      <div class="section-label">Livrable 2</div>
-      <h1 class="section-title">Plateforme de marque</h1>
+    <!-- ═══════════════════════════════════════════════════════
+         PLATEFORME DE MARQUE — toujours chapitré en 9 sections
+         Chaque élément = sa propre <section> avec son id
+         Ne jamais regrouper dans un seul bloc
+         ═══════════════════════════════════════════════════════ -->
 
-      <!-- TL;DR -->
+    <!-- 2.0 Portrait de marque — TOUJOURS en premier, avant le diagnostic -->
+    <section class="section" id="portrait">
+      <div class="section-label">Plateforme · Portrait</div>
+      <h2 class="section-title">Portrait de marque</h2>
+
+      <div style="display:grid;gap:24px;margin-bottom:8px;">
+
+        <!-- 1 MOT : le mot le plus juste qui incarne la marque — 1 seul, brutal -->
+        <div style="border:1px solid #e5e5e5;border-radius:12px;padding:40px 48px;text-align:center;">
+          <div style="font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:#bbb;margin-bottom:16px;">1 mot</div>
+          <div style="font-size:52px;font-weight:800;color:#1a1a1a;letter-spacing:-0.03em;line-height:1;">[MOT — généré depuis l'essence + angle stratégique]</div>
+        </div>
+
+        <!-- 1 PHRASE : mémorable, humaine — pas la phrase de positionnement technique -->
+        <div style="border:1px solid #e5e5e5;border-radius:12px;padding:32px 40px;">
+          <div style="font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:#bbb;margin-bottom:16px;">1 phrase</div>
+          <div style="font-size:20px;font-weight:600;color:#1a1a1a;line-height:1.5;">[PHRASE — ce qu'on dirait à quelqu'un en 10 secondes, générée depuis positionnement + discriminant]</div>
+        </div>
+
+        <!-- 1 PARAGRAPHE : elevator pitch, 3-5 phrases, pour un investisseur ou partenaire -->
+        <div style="border:1px solid #e5e5e5;border-radius:12px;padding:32px 40px;">
+          <div style="font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:#bbb;margin-bottom:16px;">1 paragraphe</div>
+          <div style="font-size:15px;color:#333;line-height:1.8;">[PARAGRAPHE — elevator pitch 3-5 phrases, généré depuis raison d'être + positionnement + preuve différenciante]</div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- 2.1 Diagnostic -->
+    <section class="section" id="diagnostic">
+      <div class="section-label">Livrable 2 · Plateforme de marque</div>
+      <h2 class="section-title">Diagnostic de marque</h2>
       <div class="tldr">
         <div class="tldr-label">TL;DR — 30 secondes</div>
         <ul>
@@ -428,68 +489,130 @@ Générer le fichier HTML complet.
           <li>[Essence]</li>
         </ul>
       </div>
-
       <div class="block">
-        <div class="block-title">Raison d'être</div>
-        <div class="block-content"><p>[raison_detre]</p></div>
+        <div class="block-content"><p>[pages.diagnostic.contenu — résumé du contexte et de la problématique]</p></div>
       </div>
+    </section>
 
+    <!-- 2.2 Raison d'être -->
+    <section class="section" id="raison-detre">
+      <div class="section-label">Plateforme · 1/7</div>
+      <h2 class="section-title">Raison d'être</h2>
+      <div class="essence-block" style="padding: 44px 48px;">
+        <div class="essence-text" style="font-size:22px;line-height:1.6;">[pages.raison_detre.contenu]</div>
+      </div>
+    </section>
+
+    <!-- 2.3 Vision & Mission -->
+    <section class="section" id="vision-mission">
+      <div class="section-label">Plateforme · 2/7</div>
+      <h2 class="section-title">Vision & Mission</h2>
       <div class="block">
         <div class="block-title">Vision</div>
-        <div class="block-content"><p>[vision]</p></div>
+        <div class="block-content"><p>[pages.vision_mission.vision]</p></div>
       </div>
-
       <div class="block">
         <div class="block-title">Mission</div>
-        <div class="block-content"><p>[mission]</p></div>
+        <div class="block-content"><p>[pages.vision_mission.mission]</p></div>
       </div>
+    </section>
 
-      <div class="block">
-        <div class="block-title">Valeurs</div>
-        <!-- Pour chaque valeur -->
-        <div class="card">
-          <div class="card-title">[valeur.titre]</div>
-          <div class="card-sub">[valeur.definition]</div>
-          <div class="card-proof">Preuves : [valeur.preuves joints par " · "]</div>
-        </div>
+    <!-- 2.4 Valeurs -->
+    <section class="section" id="valeurs">
+      <div class="section-label">Plateforme · 3/7</div>
+      <h2 class="section-title">Valeurs</h2>
+      <!-- Pour chaque valeur dans pages.valeurs.valeurs[] -->
+      <div class="card">
+        <div class="card-title">[valeur.titre]</div>
+        <div class="card-sub">[valeur.definition]</div>
+        <div class="card-proof">Preuves : [valeur.preuves joints par " · "]</div>
       </div>
+    </section>
 
+    <!-- 2.5 Cible & Personas -->
+    <section class="section" id="personas">
+      <div class="section-label">Plateforme · 4/7</div>
+      <h2 class="section-title">Cible & Personas</h2>
+      <!-- Pour chaque persona dans pages.personas.personas[] -->
+      <div class="card">
+        <div class="card-title">[persona.nom] <span style="font-weight:400;color:#999">[persona.profil]</span></div>
+        <div class="card-sub">[persona.attente_principale]</div>
+        <div class="card-proof">Tension : [persona.tension]</div>
+      </div>
+    </section>
+
+    <!-- 2.6 Positionnement -->
+    <section class="section" id="positionnement">
+      <div class="section-label">Plateforme · 5/7</div>
+      <h2 class="section-title">Positionnement</h2>
       <div class="block">
-        <div class="block-title">Positionnement</div>
         <div class="block-content">
-          <p><em>[phrase_complete]</em></p>
-          <p><strong>Discriminant :</strong> [discriminant]</p>
-        </div>
-        <!-- Piliers -->
-        <div class="card">
-          <div class="card-title">[pilier.titre]</div>
-          <div class="card-sub">[pilier.description]</div>
-          <div class="card-proof">[pilier.preuve]</div>
+          <p><em>[pages.positionnement.phrase_complete]</em></p>
+          <p style="margin-top:16px"><strong>Discriminant :</strong> [pages.positionnement.discriminant]</p>
         </div>
       </div>
+      <!-- Pour chaque pilier dans pages.positionnement.piliers[] -->
+      <div class="card">
+        <div class="card-title">[pilier.titre]</div>
+        <div class="card-sub">[pilier.description]</div>
+        <div class="card-proof">[pilier.preuve]</div>
+      </div>
+    </section>
 
+    <!-- 2.7 Personnalité & Ton -->
+    <section class="section" id="personnalite">
+      <div class="section-label">Plateforme · 6/7</div>
+      <h2 class="section-title">Personnalité & Ton</h2>
       <div class="block">
-        <div class="block-title">Personnalité</div>
+        <div class="block-title">Archétype</div>
+        <div class="block-content"><p>[pages.personnalite.archetype]</p></div>
+      </div>
+      <div class="block">
+        <div class="block-title">Traits</div>
+        <div class="tags">
+          <!-- Pour chaque trait -->
+          <span class="tag">[trait]</span>
+        </div>
+      </div>
+      <div class="block">
+        <div class="block-title">We are / We are never</div>
         <table class="we-table">
-          <thead>
-            <tr><th>We are</th><th>We are never</th></tr>
-          </thead>
+          <thead><tr><th>We are</th><th>We are never</th></tr></thead>
           <tbody>
-            <!-- Pour chaque paire -->
+            <!-- Pour chaque paire we_are / we_are_never -->
             <tr><td>[we_are]</td><td>[we_are_never]</td></tr>
           </tbody>
         </table>
       </div>
-
-      <div class="essence-block">
-        <div class="essence-text">[essence]</div>
+      <!-- Pour chaque dimension de tone_of_voice -->
+      <div class="card">
+        <div class="card-title">[dimension.axe]</div>
+        <div class="card-sub">[dimension.description]</div>
+        <div class="card-proof">✓ [dimension.exemple_bien] &nbsp;·&nbsp; ✗ [dimension.exemple_mal]</div>
       </div>
+    </section>
 
+    <!-- 2.8 Essence & Manifeste -->
+    <section class="section" id="essence">
+      <div class="section-label">Plateforme · 7/7</div>
+      <h2 class="section-title">Essence & Manifeste</h2>
+      <div class="essence-block">
+        <div class="essence-text">[pages.essence.essence]</div>
+        <div class="essence-tension" style="margin-top:16px;font-size:14px;color:#777;">[pages.essence.tension]</div>
+      </div>
       <div class="block">
         <div class="block-title">Manifeste</div>
-        <div class="manifeste">[manifeste — avec <br> pour les sauts de ligne]</div>
+        <div class="manifeste">[pages.essence.manifeste — chaque saut de ligne devient <br>]</div>
       </div>
+    </section>
 
+    <!-- 2.9 Territoire d'expression -->
+    <section class="section" id="territoire">
+      <div class="section-label">Plateforme · Bonus</div>
+      <h2 class="section-title">Territoire d'expression</h2>
+      <div class="block">
+        <div class="block-content"><p>[pages.territoire.contenu]</p></div>
+      </div>
     </section>
 
     <!-- SECTION CAMPAGNE (si disponible) -->
@@ -629,6 +752,11 @@ Générer le fichier HTML complet.
 Écrire le fichier :
 ```
 clients/[client-name]/outputs/GBD-WIKI.html
+```
+
+Mettre à jour l'état du projet :
+```
+node gbd-tools.cjs update-state <client-slug> wiki done
 ```
 
 Afficher :

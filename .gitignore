@@ -1,13 +1,25 @@
+# Données clients — jamais dans le repo
 clients/
 JSON/
 PLATEFORME/
+
+# macOS
 .DS_Store
 
-# Webapp build
-webapp/node_modules/
-webapp/.next/
-webapp/.netlify/
-
-# Secrets — ne jamais committer
+# Secrets
 .env
 .env.local
+
+# Dashboard (Next.js)
+dashboard/node_modules/
+dashboard/.next/
+
+# Brandon vocal (Python)
+brandon-vocal/venv/
+brandon-vocal/__pycache__/
+
+# Webapp (archivée)
+webapp/
+
+# Node (racine)
+node_modules/

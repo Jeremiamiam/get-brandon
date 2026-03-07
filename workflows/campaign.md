@@ -43,6 +43,18 @@ Aucune plateforme trouvée pour [client-name].
 Lance d'abord : /gbd_platform [client-name]
 ```
 
+Charger le contexte du projet si disponible :
+```
+node gbd-tools.cjs status <client-slug>
+```
+Si `client_state` est présent dans le résultat, afficher :
+```
+Contexte de la session précédente :
+[decisions.angle_retenu si présent]
+[decisions.essence si présent]
+[points_ouverts si non vides]
+```
+
 Afficher :
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -67,7 +79,7 @@ Dériver depuis :
 - plateforme.raison_detre
 - plateforme.positionnement.discriminant
 - pages[9].contenu.essence (insight consommateur)
-- angle_strategique.verite_differenciante (depuis CONTRE-BRIEF si disponible)
+- angle_strategique.verite_differenciante (depuis BRIEF-STRATEGIQUE si disponible)
 
 Formuler la tension comme : "Le monde [état actuel] — [marque] dit [état désiré]."
 
@@ -216,6 +228,11 @@ ni les directions visuelles. C'est la prérogative du DA.
 </step>
 
 <step name="confirm">
+Mettre à jour l'état du projet :
+```
+node gbd-tools.cjs update-state <client-slug> campaign done
+```
+
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
  GBD ► CAMPAGNE CRÉÉE

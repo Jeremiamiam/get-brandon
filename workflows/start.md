@@ -1,5 +1,5 @@
 <purpose>
-Transformer un dossier client brut en contre-brief stratégique structuré.
+Transformer un dossier client brut en brief stratégique structuré.
 
 L'agent est un stratège de marque senior qui a tout lu avant la réunion. Il ne pose pas de questions pour le plaisir — il a déjà formé des hypothèses. Il propose des angles différenciants, challenge les directions génériques, et co-construit le positionnement avec le directeur artistique jusqu'à trouver la vérité exceptionnelle.
 
@@ -35,8 +35,9 @@ clients/
       BRIEF-ANALYSIS.md    ← synthèse de lecture (étape 2)
       AGENCY-APPROACH.md   ← mode agence + angle retenu (étapes 4-5)
       DISCUSSION-LOG.md    ← log de la co-construction (étape 6)
+      TALLY-FORM.json      ← metadata du questionnaire client (si généré)
     outputs/
-      CONTRE-BRIEF.json    ← livrable final structuré
+      BRIEF-STRATEGIQUE.json    ← livrable final structuré
 ```
 </project_structure>
 
@@ -45,9 +46,13 @@ clients/
 <step name="initialize">
 Extraire le nom client depuis l'argument.
 
-Créer la structure de projet (voir project_structure).
+Initialiser la structure du projet :
+```
+node gbd-tools.cjs init <client-name>
+```
+Retourne `client_slug`, `client_dir`, `inputs`, `project_existed`.
 
-Si le dossier client existe déjà :
+Si le dossier client existait déjà (`project_existed: true`) :
 ```
 Le projet [client-name] existe déjà.
 → "Reprendre" — charger le contexte existant et continuer
@@ -105,6 +110,11 @@ Types supportés : PDF, .md, .txt, .docx, emails (.eml, .txt)
 
 ## Premières intuitions
 [2-3 observations brutes qui pourraient orienter la stratégie]
+
+## La singularité brute
+Ce que cette marque fait / a / est que AUCUN concurrent direct ne peut
+revendiquer avec la même légitimité. Formuler en 1-2 phrases concrètes.
+Si rien ne ressort du dossier : noter "À creuser".
 ```
 
 Afficher à l'utilisateur :
@@ -117,31 +127,149 @@ Voici ma synthèse de lecture :
 </step>
 
 <step name="check_indispensables">
-Vérifier si les 4 indispensables sont présents dans la synthèse :
+Vérifier si les 5 indispensables sont présents dans la synthèse :
 
 1. **Concurrents redoutés** — pas les concurrents déclarés, ceux qui font vraiment flipper
 2. **Ce qu'ils ne veulent PAS être** — les repoussoirs qui définissent l'espace
 3. **Le déclencheur** — pourquoi ce projet, pourquoi maintenant
 4. **Les contraintes réelles** — budget, timing, actifs à conserver
+5. **La preuve de différenciation** — une chose concrète que cette marque fait ou a que ses concurrents directs ne peuvent pas prouver
 
-**Si des indispensables manquent** — poser uniquement les questions manquantes, une par une :
+**Classer chaque manque dans l'une des deux catégories :**
 
-Format :
+- **→ Tally** (le client seul peut répondre) : concurrents redoutés, repoussoirs, déclencheur, preuve de différenciation, contraintes budget/timing
+- **→ Session** (jugement du stratège) : arbitrages sur l'angle, choix de posture, tensions à explorer
+
+Passer à generate_tally_form si au moins un élément "→ Tally" manque.
+Sinon continuer directement vers map_territory.
+</step>
+
+<step name="generate_tally_form">
+Construire un questionnaire Tally ciblé sur les éléments manquants côté client.
+
+**Règles de formulation des questions :**
+- Formuler en s'adressant directement au client (vouvoiement ou tutoiement selon le ton du dossier)
+- Questions ouvertes — pas de QCM, le client doit pouvoir développer
+- 1 question par indispensable manquant — max 6 questions au total
+- La question sur la preuve de différenciation est toujours formulée ainsi si absente :
+  "Citez-moi une chose que vous faites, avez vécue ou possédez que vos concurrents directs ne peuvent pas prouver."
+
+Générer le form :
 ```
-Avant de proposer des angles, j'ai besoin de quelques infos critiques.
-
-[Question 1 si manquante]
-→ [Réponse utilisateur]
-
-[Question 2 si manquante]
-→ [Réponse utilisateur]
-
-[etc.]
+node gbd-tools.cjs tally-create-form [client-slug] '[{"text": "..."}, {"text": "..."}, ...]'
 ```
 
-Mettre à jour BRIEF-ANALYSIS.md avec les réponses.
+Afficher :
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ GBD ► QUESTIONNAIRE CLIENT GÉNÉRÉ
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-**Si tout est là** : continuer vers agency_approach sans s'arrêter.
+[N] infos manquantes → questionnaire créé.
+
+Envoie ce lien à [client-name] :
+→ [form_url]
+
+La session démarre maintenant avec les infos disponibles.
+Les éléments manquants seront travaillés avec des hypothèses explicites.
+
+Quand le client répond : dis "le client a répondu"
+→ j'intègre ses réponses avant de finaliser le brief.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+Continuer immédiatement vers map_territory.
+</step>
+
+<step name="integrate_tally_responses">
+Ce step se déclenche à tout moment de la session quand l'utilisateur dit "le client a répondu".
+
+```
+node gbd-tools.cjs tally-fetch-responses [client-slug]
+```
+
+Si des réponses sont disponibles :
+- Intégrer les réponses dans BRIEF-ANALYSIS.md (mettre à jour les sections concernées)
+- Signaler ce qui change dans les hypothèses en cours :
+  ```
+  ✓ Réponses client intégrées.
+
+  Ce que ça change :
+  • [Indispensable X] — hypothèse "Y" → confirmée / remplacée par "Z"
+  • [Indispensable X] — nouveau : "..."
+
+  [Si la session est déjà avancée :]
+  Ça impacte [angle / zone] → voici comment j'ajuste : [...]
+  ```
+
+Si aucune réponse encore :
+```
+Aucune réponse reçue pour le moment. Le form est toujours ouvert :
+→ [form_url]
+```
+</step>
+
+<step name="map_territory">
+Avant de proposer des angles, effectuer un benchmark web systématique du territoire concurrentiel.
+
+**Étape 1 — Identifier les concurrents à analyser**
+
+Si des concurrents redoutés sont présents dans BRIEF-ANALYSIS.md :
+→ Les utiliser directement.
+
+Si aucun concurrent identifié (Tally en attente ou dossier muet) :
+→ `WebSearch "[secteur client] [type entreprise] principaux acteurs [pays]"`
+→ Identifier 3-4 acteurs pertinents depuis les résultats.
+→ Signaler dans la suite : "Concurrents supposés — à confirmer avec le client."
+
+**Étape 2 — Fetcher chaque concurrent systématiquement**
+
+Pour chaque concurrent (max 5) :
+1. `WebSearch "[nom concurrent] site officiel"` → trouver l'URL exacte
+2. `WebFetch <url>` → homepage : héro message, promesse principale, valeurs affichées, ton
+3. `WebFetch <url>/a-propos` (essayer aussi `/about`, `/manifeste`, `/qui-sommes-nous`) → si disponible
+4. Déduire :
+   - **Angle déclaré** : ce qu'il revendique explicitement
+   - **Angle aveugle** : ce qu'il ne peut pas crédiblement revendiquer vu ce qu'il est ou fait
+
+**Étape 3 — Afficher le benchmark à l'utilisateur**
+
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ GBD ► BENCHMARK CONCURRENTIEL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+[Nom concurrent A] — [url]
+→ Promesse : "[citation exacte si possible, sinon reformulation fidèle]"
+→ Ton : [description en 2-3 mots]
+→ Angle aveugle : [ce qu'ils ne peuvent pas revendiquer avec légitimité]
+
+[Nom concurrent B] — [url]
+→ Promesse : "..."
+→ Ton : ...
+→ Angle aveugle : ...
+
+[Répéter pour chaque concurrent]
+
+Territoire libre : [espace blanc — ce que personne ne revendique
+avec légitimité dans ce secteur]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+**Étape 4 — Écrire dans BRIEF-ANALYSIS.md**
+
+Ajouter la section "Carte concurrentielle" avec pour chaque concurrent :
+- URL réelle
+- Promesse/angle déclaré (citations si possible)
+- Angle aveugle
+- Espace blanc identifié en conclusion
+
+**Étape 5 — Alimenter propose_angles**
+
+Chaque angle proposé à l'étape suivante doit référencer explicitement le benchmark :
+"Ce territoire est libre parce que [A] revendique [X], [B] revendique [Y], et personne n'a de crédibilité sur [Z]."
+
+Si des concurrents sont "En attente client" (Tally non reçu) : travailler avec les hypothèses sectorielles identifiées et les signaler clairement dans propose_angles.
 </step>
 
 <step name="agency_approach">
@@ -171,6 +299,13 @@ L'agent formule 2-3 angles stratégiques distincts pour ce client.
 - Cohérent avec la posture agence choisie
 - Défendable avec des preuves issues du dossier
 
+**Si des éléments sont encore En attente Tally**, signaler les hypothèses en tête de présentation :
+```
+⚠️ Hypothèses de travail (en attente réponses client) :
+• Concurrents redoutés supposés : [X, Y] — si différents, l'angle 2 peut changer de priorité
+• Preuve de différenciation supposée : [Z] — à confirmer
+```
+
 **Format de présentation :**
 
 ```
@@ -191,6 +326,7 @@ La vérité : [La vérité spécifique au client qui fonde cet angle]
 Le territoire : [L'espace qu'il occupe sur le marché]
 Pourquoi différenciant : [Ce que les concurrents ne peuvent pas revendiquer]
 Risque : [La limite ou le danger de cet angle]
+Test de résistance : [Si le concurrent principal lit cet angle aujourd'hui, en combien de temps peut-il le copier ? Si < 18 mois, reformuler.]
 
 ---
 
@@ -199,6 +335,7 @@ La vérité : [...]
 Le territoire : [...]
 Pourquoi différenciant : [...]
 Risque : [...]
+Test de résistance : [...]
 
 ---
 
@@ -207,6 +344,7 @@ La vérité : [...]
 Le territoire : [...]
 Pourquoi différenciant : [...]
 Risque : [...]
+Test de résistance : [...]
 
 ---
 
@@ -219,6 +357,7 @@ Attendre la réponse. L'utilisateur peut :
 - Demander un angle hybride → reformuler et reproposer
 - Rejeter tout et donner une direction → reformuler avec cette direction
 - Demander un 4e angle → en proposer un nouveau
+- Dire "le client a répondu" → déclencher integrate_tally_responses puis reprendre
 
 Écrire l'angle retenu dans AGENCY-APPROACH.md.
 </step>
@@ -285,7 +424,23 @@ L'agent propose 3 dimensions tonales avec des exemples concrets :
 L'agent propose l'essence de marque : 2-5 mots maximum.
 Ce n'est pas un slogan. C'est la vérité la plus concentrée.
 
-Exemples de référence : "Belong Anywhere" (Airbnb), "Just Do It" (Nike), "Think Different" (Apple)
+**L'essence n'est pas un résumé de la raison d'être. C'est la tension créatrice au cœur de la marque.**
+- Airbnb : "Belong Anywhere" — tension entre appartenir (intime, rassurant) et partout (universel, aventureux)
+- Nike : "Just Do It" — tension entre l'injonction brutale et la libération (il n'y a que ça à faire)
+- Apple : "Think Different" — tension entre la pensée (intellectuel) et la différence (rebelle)
+
+Proposer 3 essences avec leur tension explicitée :
+```
+Essence 1 : "[mots]"
+Tension : [pôle A] vs [pôle B]
+
+Essence 2 : "[mots]"
+Tension : [pôle A] vs [pôle B]
+
+Essence 3 : "[mots]"
+Tension : [pôle A] vs [pôle B]
+```
+L'utilisateur choisit. Si aucune ne convient, reformuler à partir des retours.
 
 ---
 
@@ -298,14 +453,15 @@ Pour chaque zone :
 4. Quand la zone est validée → passer à la suivante
 
 L'utilisateur peut passer une zone ("tu décides") → noter "Au choix de l'agence" dans le JSON.
+L'utilisateur peut dire "le client a répondu" à tout moment → déclencher integrate_tally_responses.
 
 Écrire le log dans DISCUSSION-LOG.md au fil de la conversation.
 
 **Scope creep :** si l'utilisateur aborde des éléments du brand book (couleurs, logo, typographie), noter dans une section "À traiter en phase Brand Book" et recentrer sur la stratégie.
 </step>
 
-<step name="write_contre_brief">
-Une fois toutes les zones validées, écrire CONTRE-BRIEF.json.
+<step name="write_brief_strategique">
+Une fois toutes les zones validées, écrire BRIEF-STRATEGIQUE.json.
 
 **Schéma JSON :**
 
@@ -380,14 +536,19 @@ Une fois toutes les zones validées, écrire CONTRE-BRIEF.json.
 </step>
 
 <step name="confirm">
+Mettre à jour l'état du projet :
+```
+node gbd-tools.cjs update-state <client-slug> start done
+```
+
 Afficher le résumé et les prochaines étapes :
 
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- GBD ► CONTRE-BRIEF CRÉÉ
+ GBD ► BRIEF STRATÉGIQUE CRÉÉ
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-clients/[client-name]/outputs/CONTRE-BRIEF.json
+clients/[client-name]/outputs/BRIEF-STRATEGIQUE.json
 
 ## Angle retenu
 [Titre de l'angle]
@@ -409,7 +570,7 @@ clients/[client-name]/outputs/CONTRE-BRIEF.json
 ▶ Prochaine étape
 
 /gbd_platform [client-name]
-Génère la plateforme de marque complète depuis le contre-brief.
+Génère la plateforme de marque complète depuis le brief stratégique.
 
 ---
 ```
@@ -419,11 +580,14 @@ Génère la plateforme de marque complète depuis le contre-brief.
 
 <success_criteria>
 - Dossier client lu dans son intégralité
-- Indispensables vérifiés et complétés si manquants
+- Indispensables manquants → questionnaire Tally ciblé généré et lien transmis
+- Session démarre sans attendre les réponses client
+- Hypothèses de travail explicites si éléments en attente
 - Mode agence choisi avant toute proposition
 - 2-3 angles distincts, différenciants, fondés sur des vérités spécifiques au client
 - Angles génériques / bullshit identifiés et nommés
 - 5 zones stratégiques co-construites en dialogue
-- CONTRE-BRIEF.json propre, exploitable par /gbd_platform
+- Réponses Tally intégrées à la demande ("le client a répondu")
+- BRIEF-STRATEGIQUE.json propre, exploitable par /gbd_platform
 - L'utilisateur peut défendre chaque décision
 </success_criteria>
