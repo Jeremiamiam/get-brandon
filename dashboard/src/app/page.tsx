@@ -1,13 +1,13 @@
-import { supabase } from "@/lib/supabase";
+import { getSupabase, DashboardClient } from "@/lib/supabase";
 import Link from "next/link";
 
-async function getClients() {
-  const { data, error } = await supabase
+async function getClients(): Promise<DashboardClient[]> {
+  const { data, error } = await getSupabase()
     .from("dashboard_clients")
     .select("*")
     .order("name");
   if (error) throw error;
-  return data ?? [];
+  return (data ?? []) as DashboardClient[];
 }
 
 const STEP_LABELS: Record<string, string> = {
