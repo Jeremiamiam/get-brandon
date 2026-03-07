@@ -1,0 +1,20 @@
+# Env
+.env
+.env.local
+.env*.local
+
+# Next.js
+dashboard/.next/
+dashboard/node_modules/
+
+# OS
+.DS_Store
+
+# Archives
+clients/
+webapp/
+JSON/
+PLATEFORME/
+brandon-vocal/
+ornanza-proto/
+node_modules/
