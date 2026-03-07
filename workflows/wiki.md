@@ -118,47 +118,53 @@ Générer le fichier HTML complet.
       line-height: 1.3;
     }
 
-    .sidebar-nav { list-style: none; }
+    /* Page switching */
+    .page { display: none; }
+    .page.active { display: block; }
 
-    .sidebar-nav li { margin-bottom: 4px; }
-
-    .sidebar-nav a {
-      display: block;
-      padding: 6px 10px;
-      border-radius: 6px;
-      color: #71717a;
-      text-decoration: none;
+    /* Sidebar nav — page items */
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      cursor: pointer;
       font-size: 13px;
+      font-weight: 500;
+      color: #71717a;
       transition: background 0.15s, color 0.15s;
+      margin-bottom: 2px;
+      user-select: none;
+      line-height: 1.3;
     }
+    .nav-item:hover { background: #18181b; color: #e4e4e7; }
+    .nav-item.active { background: #18181b; color: #f4f4f5; font-weight: 600; }
 
-    .sidebar-nav a:hover {
-      background: #18181b;
-      color: #e4e4e7;
-    }
-
-    .sidebar-nav a.active {
-      background: #18181b;
-      color: #10b981;
-    }
-
-    .sidebar-nav .nav-section-label {
+    .nav-num {
+      font-family: 'JetBrains Mono', monospace;
       font-size: 10px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
       color: #3f3f46;
-      padding: 16px 10px 4px;
+      min-width: 20px;
+      flex-shrink: 0;
     }
+    .nav-item.active .nav-num { color: #10b981; }
 
-    .sidebar-nav a.nav-sub {
-      padding-left: 20px;
+    /* Sub-nav (sections de la plateforme) */
+    .sub-nav { display: none; padding: 2px 0 10px 40px; }
+    .sub-nav.visible { display: block; }
+
+    .sidebar-nav .nav-sub {
+      display: block;
+      padding: 5px 10px;
+      border-radius: 6px;
       font-size: 12px;
       color: #52525b;
+      text-decoration: none;
+      transition: background 0.1s, color 0.1s;
     }
-
-    .sidebar-nav a.nav-sub:hover { background: #18181b; color: #e4e4e7; }
-    .sidebar-nav a.nav-sub.active { background: #18181b; color: #10b981; }
+    .sidebar-nav .nav-sub:hover { background: #18181b; color: #e4e4e7; }
+    .sidebar-nav .nav-sub.active { color: #10b981; }
 
     /* Main content */
     .main {
@@ -346,6 +352,63 @@ Générer le fichier HTML complet.
       margin: 24px 0;
     }
 
+    /* Brief — Angle hero card (premier .block de la section brief) */
+    #brief-strategique .block:first-of-type,
+    #contre-brief .block:first-of-type {
+      background: rgba(16, 185, 129, 0.05);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      border-radius: 12px;
+      padding: 32px 36px;
+      margin-bottom: 36px;
+    }
+    #brief-strategique .block:first-of-type .block-title,
+    #contre-brief .block:first-of-type .block-title { color: #10b981; letter-spacing: 0.14em; }
+
+    #brief-strategique .block:first-of-type .block-content strong,
+    #contre-brief .block:first-of-type .block-content strong {
+      display: block;
+      font-size: 22px;
+      font-weight: 700;
+      color: #f4f4f5;
+      letter-spacing: -0.01em;
+      line-height: 1.3;
+      margin-bottom: 14px;
+    }
+    #brief-strategique .block:first-of-type .block-content p,
+    #contre-brief .block:first-of-type .block-content p {
+      color: #d4d4d8;
+      font-size: 15px;
+      line-height: 1.75;
+    }
+
+    /* Brief — section-title large */
+    #brief-strategique .section-title,
+    #contre-brief .section-title {
+      font-size: 38px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.05;
+    }
+
+    /* Brief — angles écartés comme mini-cards */
+    #brief-strategique .block:nth-of-type(2) .block-content p,
+    #contre-brief .block:nth-of-type(2) .block-content p {
+      background: #111113;
+      border: 1px solid #27272a;
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin-bottom: 8px;
+      font-size: 13px;
+      color: #a1a1aa;
+    }
+    #brief-strategique .block:nth-of-type(2) .block-content p strong,
+    #contre-brief .block:nth-of-type(2) .block-content p strong {
+      display: inline;
+      font-size: 13px;
+      font-weight: 600;
+      color: #e4e4e7;
+    }
+
     /* Generated date */
     .footer {
       margin-top: 80px;
@@ -374,31 +437,53 @@ Générer le fichier HTML complet.
   <aside class="sidebar">
     <div class="sidebar-brand">GBD</div>
     <div class="sidebar-client">[CLIENT NAME]</div>
-    <ul class="sidebar-nav">
-      <li class="nav-section-label">Livrables</li>
-      <!-- Générer un lien par section disponible -->
-      [SI BRIEF-STRATEGIQUE] <li><a href="#brief-strategique">Brief stratégique</a></li>
+    <nav class="sidebar-nav">
+      <!-- Générer un .nav-item par livrable disponible, dans l'ordre -->
+      [SI BRIEF-STRATEGIQUE]
+      <div class="nav-item active" id="nav-brief" onclick="showPage('brief')">
+        <span class="nav-num">01</span>Brief stratégique
+      </div>
+      [/SI]
       [SI PLATFORM]
-        <li><a href="#portrait">Portrait de marque</a></li>
-        <li><a href="#diagnostic">Diagnostic de marque</a></li>
-        <li><a href="#raison-detre" class="nav-sub">Raison d'être</a></li>
-        <li><a href="#vision-mission" class="nav-sub">Vision & Mission</a></li>
-        <li><a href="#valeurs" class="nav-sub">Valeurs</a></li>
-        <li><a href="#personas" class="nav-sub">Cible & Personas</a></li>
-        <li><a href="#positionnement" class="nav-sub">Positionnement</a></li>
-        <li><a href="#personnalite" class="nav-sub">Personnalité & Ton</a></li>
-        <li><a href="#essence" class="nav-sub">Essence & Manifeste</a></li>
-        <li><a href="#territoire" class="nav-sub">Territoire</a></li>
-      [/SI PLATFORM]
-      [SI CAMPAIGN] <li><a href="#campagne">Campagne</a></li>
-      [SI SITE] <li><a href="#site">Site web</a></li>
-    </ul>
+      <div class="nav-item" id="nav-plateforme" onclick="showPage('plateforme')">
+        <span class="nav-num">02</span>Plateforme de marque
+      </div>
+      <div class="sub-nav" id="subnav-plateforme">
+        <a href="#portrait" class="nav-sub">Portrait</a>
+        <a href="#diagnostic" class="nav-sub">Diagnostic</a>
+        <a href="#raison-detre" class="nav-sub">Raison d'être</a>
+        <a href="#vision-mission" class="nav-sub">Vision & Mission</a>
+        <a href="#valeurs" class="nav-sub">Valeurs</a>
+        <a href="#personas" class="nav-sub">Personas</a>
+        <a href="#positionnement" class="nav-sub">Positionnement</a>
+        <a href="#personnalite" class="nav-sub">Personnalité & Ton</a>
+        <a href="#essence" class="nav-sub">Essence & Manifeste</a>
+        <a href="#territoire" class="nav-sub">Territoire</a>
+      </div>
+      [/SI]
+      [SI CAMPAIGN]
+      <div class="nav-item" id="nav-campagne" onclick="showPage('campagne')">
+        <span class="nav-num">03</span>Campagne
+      </div>
+      [/SI]
+      [SI SITE]
+      <div class="nav-item" id="nav-site" onclick="showPage('site')">
+        <span class="nav-num">04</span>Site web
+      </div>
+      [/SI]
+    </nav>
   </aside>
 
   <main class="main">
 
-    <!-- SECTION BRIEF-STRATEGIQUE (si disponible) -->
-    <section class="section" id="brief stratégique">
+    <!-- ════════════════════════════════════════
+         Chaque livrable est une <div class="page">
+         Un seul .page.active est visible à la fois
+         ════════════════════════════════════════ -->
+
+    <!-- PAGE BRIEF-STRATEGIQUE (si disponible) -->
+    <div class="page active" id="page-brief">
+    <section class="section" id="brief-strategique">
       <div class="section-label">Livrable 1</div>
       <h1 class="section-title">Contre-brief</h1>
 
@@ -415,7 +500,7 @@ Générer le fichier HTML complet.
         </ul>
       </div>
 
-      <!-- Contenu complet -->
+      <!-- Angle stratégique retenu — hero card emerald -->
       <div class="block">
         <div class="block-title">Angle stratégique retenu</div>
         <div class="block-content">
@@ -425,10 +510,11 @@ Générer le fichier HTML complet.
         </div>
       </div>
 
+      <!-- Angles écartés — chaque angle sur sa propre ligne card -->
       <div class="block">
         <div class="block-title">Angles écartés</div>
         <div class="block-content">
-          <!-- Pour chaque angle écarté -->
+          <!-- Pour chaque angle écarté, une <p> : <strong>[titre]</strong> — [raison] -->
           <p><strong>[titre]</strong> — [raison]</p>
         </div>
       </div>
@@ -442,7 +528,7 @@ Générer le fichier HTML complet.
       </div>
 
       <div class="block">
-        <div class="block-title">Repoussoirs — ce que la marque ne doit jamais être</div>
+        <div class="block-title">Ce que la marque ne sera jamais</div>
         <div class="tags">
           <!-- Pour chaque repoussoir -->
           <span class="tag negative">[repoussoir]</span>
@@ -450,12 +536,13 @@ Générer le fichier HTML complet.
       </div>
 
     </section>
+    </div><!-- /page-brief -->
 
     <!-- ═══════════════════════════════════════════════════════
-         PLATEFORME DE MARQUE — toujours chapitré en 9 sections
-         Chaque élément = sa propre <section> avec son id
-         Ne jamais regrouper dans un seul bloc
+         PAGE PLATEFORME — toutes les sections dans une page
+         Sidebar sub-nav pour naviguer entre les sections
          ═══════════════════════════════════════════════════════ -->
+    <div class="page" id="page-plateforme">
 
     <!-- 2.0 Portrait de marque — TOUJOURS en premier, avant le diagnostic -->
     <section class="section" id="portrait">
@@ -625,7 +712,10 @@ Générer le fichier HTML complet.
       </div>
     </section>
 
-    <!-- SECTION CAMPAGNE (si disponible) -->
+    </div><!-- /page-plateforme -->
+
+    <!-- PAGE CAMPAGNE (si disponible) -->
+    <div class="page" id="page-campagne">
     <section class="section" id="campagne">
       <div class="section-label">Livrable 3</div>
       <h1 class="section-title">Campagne</h1>
@@ -681,8 +771,10 @@ Générer le fichier HTML complet.
       </div>
 
     </section>
+    </div><!-- /page-campagne -->
 
-    <!-- SECTION SITE WEB (si disponible) -->
+    <!-- PAGE SITE WEB (si disponible) -->
+    <div class="page" id="page-site">
     <section class="section" id="site">
       <div class="section-label">Livrable 4</div>
       <h1 class="section-title">Site web</h1>
@@ -726,24 +818,44 @@ Générer le fichier HTML complet.
       Généré par GBD le [date] · [client-name]
     </div>
 
+    </div><!-- /page-site -->
+
   </main>
 
   <script>
-    // Highlight active nav item on scroll
-    const sections = document.querySelectorAll('.section');
-    const navLinks = document.querySelectorAll('.sidebar-nav a');
+    // Page switching — chaque livrable est une page indépendante
+    function showPage(key) {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      const pg = document.getElementById('page-' + key);
+      if (pg) pg.classList.add('active');
 
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          navLinks.forEach(link => link.classList.remove('active'));
-          const activeLink = document.querySelector(`.sidebar-nav a[href="#${entry.target.id}"]`);
-          if (activeLink) activeLink.classList.add('active');
-        }
-      });
-    }, { threshold: 0.3 });
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      const ni = document.getElementById('nav-' + key);
+      if (ni) ni.classList.add('active');
 
-    sections.forEach(section => observer.observe(section));
+      document.querySelectorAll('.sub-nav').forEach(s => s.classList.remove('visible'));
+      const sub = document.getElementById('subnav-' + key);
+      if (sub) sub.classList.add('visible');
+
+      window.scrollTo(0, 0);
+    }
+
+    // Scroll spy — highlight sub-nav actif dans plateforme et site
+    ['plateforme', 'site'].forEach(key => {
+      const pg = document.getElementById('page-' + key);
+      const subNav = document.getElementById('subnav-' + key);
+      if (!pg || !subNav) return;
+      const obs = new IntersectionObserver(entries => {
+        entries.forEach(e => {
+          if (e.isIntersecting && e.target.id) {
+            subNav.querySelectorAll('.nav-sub').forEach(a => a.classList.remove('active'));
+            const link = subNav.querySelector(`a[href="#${e.target.id}"]`);
+            if (link) link.classList.add('active');
+          }
+        });
+      }, { threshold: 0.25 });
+      pg.querySelectorAll('.section').forEach(s => obs.observe(s));
+    });
   </script>
 
 </body>
