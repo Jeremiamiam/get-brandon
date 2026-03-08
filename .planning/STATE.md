@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: in_progress
-last_updated: "2026-03-08T09:55:00Z"
+status: unknown
+last_updated: "2026-03-08T09:59:15.311Z"
 progress:
   total_phases: 1
   completed_phases: 0
   total_plans: 5
-  completed_plans: 2
+  completed_plans: 3
 ---
 
 # Project State
@@ -21,10 +21,10 @@ progress:
 Phase 01 — Foundation: Auth + Infrastructure + Schema
 
 ## Current Position
-Plans 01-01 and 01-02 complete. Next: 01-03 (auth gate: login page, protected layout, middleware).
+Plans 01-01, 01-02, and 01-04 complete. Next: 01-03 (auth gate: login page, protected layout, middleware).
 
 ## Status
-Executing Phase 01. Plans 01-01 (Supabase packages + clients + env) and 01-02 (schema/RLS/indexes) complete.
+Executing Phase 01. Plans 01-01 (Supabase packages + clients + env), 01-02 (schema/RLS/indexes), and 01-04 (seed data) complete.
 
 ## Decisions
 
@@ -40,6 +40,7 @@ Executing Phase 01. Plans 01-01 (Supabase packages + clients + env) and 01-02 (s
 - [01-01]: NEXT_PUBLIC_SUPABASE_ANON_KEY used (not PUBLISHABLE_KEY) — correct @supabase/ssr variable name
 - [01-01]: server.ts createClient() is async (await cookies()) — required by Next.js 15/16 App Router
 - [01-01]: SUPABASE_SERVICE_ROLE_KEY never prefixed NEXT_PUBLIC_ — SEC-4 compliant
+- [Phase 01-foundation-auth-infrastructure-schema]: DO $$ block pattern used in seed SQL for readable FK variable references
 
 ## Blockers
 Aucun

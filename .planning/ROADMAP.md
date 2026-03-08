@@ -16,7 +16,7 @@ Brancher l'UI v2 existante (`dashboard/`) sur un vrai backend Supabase. Remplace
 
 **Goal:** Supabase fonctionnel avec auth, schéma, RLS et données seed. Aucun changement UI.
 
-**Plans:** 2/5 plans executed
+**Plans:** 3/5 plans executed
 
 Plans:
 - [x] 01-01-PLAN.md — Install Supabase packages + clients browser/server + env vars
@@ -104,7 +104,7 @@ Plans:
 
 | Phase | Goal | Plans | Status |
 |-------|------|-------|--------|
-| 01 — Foundation | 1/5 | In Progress|  |
+| 01 — Foundation | 3/5 | In Progress|  |
 | 02 — Live Reads | Server Components | 4 | planned |
 | 03 — Live Writes | CRUD + File Upload | 5 | planned |
 | 04 — AI on Real Data | Context builders + mock.ts delete | 4 | planned |
