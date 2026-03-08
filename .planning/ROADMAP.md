@@ -104,7 +104,7 @@ Plans:
 
 | Phase | Goal | Plans | Status |
 |-------|------|-------|--------|
-| 01 — Foundation | 5/5 | Complete   | 2026-03-08 |
+| 01 — Foundation | 5/5 | Complete    | 2026-03-08 |
 | 02 — Live Reads | Server Components | 4 | planned |
 | 03 — Live Writes | CRUD + File Upload | 5 | planned |
 | 04 — AI on Real Data | Context builders + mock.ts delete | 4 | planned |
