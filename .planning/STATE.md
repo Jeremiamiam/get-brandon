@@ -3,10 +3,10 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-last_updated: "2026-03-08T12:10:00.000Z"
+last_updated: "2026-03-08T12:04:56.096Z"
 progress:
   total_phases: 4
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 11
   completed_plans: 11
 ---
@@ -56,6 +56,7 @@ Phase 02 complete (6/6 plans). All dashboard pages and tab components migrated t
 - [Phase 02-live-reads-server-components]: project.clientId !== clientId guard ensures UUID-level consistency — invalid URL combos return 404
 - [Phase 02-live-reads-server-components]: conversations in ChatTab defaults to [] in Phase 02 — no Supabase conversations table yet; empty state renders correctly
 - [Phase 02-live-reads-server-components]: Tab components receive Supabase data as props exclusively — never call mock or DAL functions internally (ARCH-3)
+- [Phase 02-live-reads-server-components]: useProjectOverrides removed from compta — project.potentialAmount from Supabase used directly; potential editing restored in Phase 03 via Server Actions
 
 ## Blockers
 Aucun
