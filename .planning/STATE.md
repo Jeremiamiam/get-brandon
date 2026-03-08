@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: in_progress
-last_updated: "2026-03-08T09:54:03Z"
+last_updated: "2026-03-08T09:55:00Z"
 progress:
   total_phases: 1
   completed_phases: 0
@@ -21,10 +21,10 @@ progress:
 Phase 01 — Foundation: Auth + Infrastructure + Schema
 
 ## Current Position
-Plan 02 complete. Next: 01-03 (Supabase client + auth setup).
+Plans 01-01 and 01-02 complete. Next: 01-03 (auth gate: login page, protected layout, middleware).
 
 ## Status
-Executing Phase 01. Plan 01-01 (research) and 01-02 (schema/RLS/indexes) complete.
+Executing Phase 01. Plans 01-01 (Supabase packages + clients + env) and 01-02 (schema/RLS/indexes) complete.
 
 ## Decisions
 
@@ -37,6 +37,9 @@ Executing Phase 01. Plan 01-01 (research) and 01-02 (schema/RLS/indexes) complet
 | Schéma simple (owner_id seul) | Pas de multi-user en v1, migration additive en v2 |
 - [Phase 01-foundation-auth-infrastructure-schema]: owner_id on all 5 tables enables direct RLS without join-based policies
 - [Phase 01-foundation-auth-infrastructure-schema]: (SELECT auth.uid()) subquery form used in all RLS policies for single-eval optimization
+- [01-01]: NEXT_PUBLIC_SUPABASE_ANON_KEY used (not PUBLISHABLE_KEY) — correct @supabase/ssr variable name
+- [01-01]: server.ts createClient() is async (await cookies()) — required by Next.js 15/16 App Router
+- [01-01]: SUPABASE_SERVICE_ROLE_KEY never prefixed NEXT_PUBLIC_ — SEC-4 compliant
 
 ## Blockers
 Aucun

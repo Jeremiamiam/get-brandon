@@ -16,11 +16,11 @@ Brancher l'UI v2 existante (`dashboard/`) sur un vrai backend Supabase. Remplace
 
 **Goal:** Supabase fonctionnel avec auth, schéma, RLS et données seed. Aucun changement UI.
 
-**Plans:** 1/5 plans executed
+**Plans:** 2/5 plans executed
 
 Plans:
-- [ ] 01-01-PLAN.md — Install Supabase packages + clients browser/server + env vars
-- [ ] 01-02-PLAN.md — Schema SQL : 5 tables + RLS + indexes (001_schema.sql, 002_rls.sql, 003_indexes.sql)
+- [x] 01-01-PLAN.md — Install Supabase packages + clients browser/server + env vars
+- [x] 01-02-PLAN.md — Schema SQL : 5 tables + RLS + indexes (001_schema.sql, 002_rls.sql, 003_indexes.sql)
 - [ ] 01-03-PLAN.md — Auth gate : login page, protected layout, middleware token refresh
 - [ ] 01-04-PLAN.md — Seed data : toutes les données mock.ts → 004_seed.sql
 - [ ] 01-05-PLAN.md — Validation sécurité : audit getSession→getUser, WITH CHECK, service role key isolation
