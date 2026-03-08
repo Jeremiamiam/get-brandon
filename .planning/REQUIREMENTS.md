@@ -21,11 +21,11 @@ L'UI v2 (Next.js 16 + Tailwind v4) est entièrement construite avec des données
 - [ ] **AUTH-4** — Logout fonctionnel
 
 ### Clients
-- [ ] **CLIENT-1** — Créer un nouveau client (nom, industrie, catégorie, couleur)
-- [ ] **CLIENT-2** — Éditer les infos d'un client existant
-- [ ] **CLIENT-3** — Archiver un client (passage en catégorie `archived`)
-- [ ] **CLIENT-4** — Supprimer un client (soft delete ou hard delete)
-- [ ] **CLIENT-5** — Passer un prospect en client actif (changement de `category`)
+- [x] **CLIENT-1** — Créer un nouveau client (nom, industrie, catégorie, couleur)
+- [x] **CLIENT-2** — Éditer les infos d'un client existant
+- [x] **CLIENT-3** — Archiver un client (passage en catégorie `archived`)
+- [x] **CLIENT-4** — Supprimer un client (soft delete ou hard delete)
+- [x] **CLIENT-5** — Passer un prospect en client actif (changement de `category`)
 - [x] **CLIENT-6** — Liste clients persistée et rechargée depuis Supabase
 
 ### Projets
@@ -74,11 +74,11 @@ L'UI v2 (Next.js 16 + Tailwind v4) est entièrement construite avec des données
 - [x] **SEC-2** — `WITH CHECK (auth.uid() = owner_id)` sur tous les INSERT/UPDATE
 - [x] **SEC-3** — `getUser()` uniquement côté serveur (jamais `getSession()`)
 - [x] **SEC-4** — `SUPABASE_SERVICE_ROLE_KEY` jamais préfixé `NEXT_PUBLIC_`, `import 'server-only'` dans le client admin
-- [ ] **SEC-5** — Bucket Storage privé, accès uniquement via signed URLs
+- [x] **SEC-5** — Bucket Storage privé, accès uniquement via signed URLs
 
 ### Performance
 - [x] **PERF-1** — Index sur `owner_id`, `client_id`, `project_id` sur toutes les tables
-- [ ] **PERF-2** — `revalidatePath()` après chaque Server Action mutation (pas de Realtime)
+- [x] **PERF-2** — `revalidatePath()` après chaque Server Action mutation (pas de Realtime)
 - [ ] **PERF-3** — Upload PDF via signed URL (pas de proxy via Next.js)
 
 ### Architecture

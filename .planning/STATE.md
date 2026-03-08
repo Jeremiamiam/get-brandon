@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-last_updated: "2026-03-08T12:11:51.958Z"
+last_updated: "2026-03-08T12:32:46.590Z"
 progress:
   total_phases: 4
   completed_phases: 2
-  total_plans: 11
-  completed_plans: 11
+  total_plans: 16
+  completed_plans: 12
 ---
 
 # Project State
@@ -18,13 +18,13 @@ progress:
 **Last updated:** 2026-03-08
 
 ## Current Phase
-Phase 02 — Live Reads: Server Components
+Phase 03 — Live Writes: Server Actions + File Upload
 
 ## Current Position
-Plans 02-01 through 02-06 complete. All three dashboard pages are async Server Components. BudgetsTab and ChatTab now receive Supabase data via props (02-06 gap closure). ARCH-3 fully satisfied. Phase 02 plans complete.
+Plan 03-01 complete. Storage bucket 'documents' migration created (manual execution in Supabase Studio required). Client Server Actions (createClient, updateClient, archiveClient, deleteClient, convertProspect) implemented with auth gates, owner_id enforcement, and revalidatePath. Plans 03-02 through 03-05 pending.
 
 ## Status
-Phase 02 complete (6/6 plans). All dashboard pages and tab components migrated to Supabase data via prop chain. Zero internal mock data calls in any tab component. Build passes. Manual browser verification recommended before Phase 03 (write operations).
+Phase 03 in progress (1/5 plans). Write layer foundation established — client mutations ready, Storage infrastructure prepared for document upload (03-03). TypeScript compiles clean.
 
 ## Decisions
 
@@ -57,6 +57,9 @@ Phase 02 complete (6/6 plans). All dashboard pages and tab components migrated t
 - [Phase 02-live-reads-server-components]: conversations in ChatTab defaults to [] in Phase 02 — no Supabase conversations table yet; empty state renders correctly
 - [Phase 02-live-reads-server-components]: Tab components receive Supabase data as props exclusively — never call mock or DAL functions internally (ARCH-3)
 - [Phase 02-live-reads-server-components]: useProjectOverrides removed from compta — project.potentialAmount from Supabase used directly; potential editing restored in Phase 03 via Server Actions
+- [Phase 03-live-writes-server-actions-file-upload]: Storage migration is manual-only — delivered as SQL for Supabase Studio execution before PDF uploads
+- [Phase 03-live-writes-server-actions-file-upload]: createClient import aliased as createSupabaseClient to avoid name collision with Server Action export
+- [Phase 03-live-writes-server-actions-file-upload]: defense-in-depth: .eq('owner_id', user.id) on all UPDATE/DELETE even with RLS active — explicit ownership enforcement
 
 ## Blockers
 Aucun

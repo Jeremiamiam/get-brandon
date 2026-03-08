@@ -65,7 +65,7 @@ Plans:
 
 **Goal:** CRUD complet (clients, projets, produits, documents, contacts) + upload PDF. Suppression des context providers legacy.
 
-**Plans:** 5 plans
+**Plans:** 1/5 plans executed
 
 Plans:
 - [ ] 03-01-PLAN.md — Storage migration (005_storage.sql) + Server Actions clients (createClient, updateClient, archiveClient, deleteClient, convertProspect)
@@ -112,7 +112,7 @@ Plans:
 |-------|------|-------|--------|
 | 01 — Foundation | 5/5 | Complete    | 2026-03-08 |
 | 02 — Live Reads | 6/6 | Complete    | 2026-03-08 |
-| 03 — Live Writes | CRUD + File Upload | 5 | planned |
+| 03 — Live Writes | 1/5 | In Progress|  |
 | 04 — AI on Real Data | Context builders + mock.ts delete | 4 | planned |
 
 **Total:** 20 plans
