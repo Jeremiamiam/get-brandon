@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { ProjectOverridesProvider } from "@/context/ProjectOverrides";
-import { LocalProjectsProvider } from "@/context/LocalProjects";
 import { ClientChatDrawerProvider } from "@/context/ClientChatDrawer";
 import { ThemeProvider } from "@/context/ThemeContext";
 import { ClientChatDrawer } from "@/components/ClientChatDrawer";
@@ -34,14 +32,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="antialiased">
         <ThemeProvider>
-          <LocalProjectsProvider>
-            <ProjectOverridesProvider>
-              <ClientChatDrawerProvider>
-                {children}
-                <ClientChatDrawer />
-              </ClientChatDrawerProvider>
-            </ProjectOverridesProvider>
-          </LocalProjectsProvider>
+          <ClientChatDrawerProvider>
+            {children}
+            <ClientChatDrawer />
+          </ClientChatDrawerProvider>
         </ThemeProvider>
       </body>
     </html>
