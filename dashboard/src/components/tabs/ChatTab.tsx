@@ -2,24 +2,26 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useChat } from "@/hooks/useChat";
-import { getConversations, getClientDocs, getProjectDocs, type Project, type Message } from "@/lib/mock";
+import { type Project, type Message, type Document } from "@/lib/mock";
 
 export function ChatTab({
   project,
   clientId,
   clientColor,
+  clientDocs,
+  projectDocs,
 }: {
   project: Project;
   clientId: string;
   clientColor: string;
+  clientDocs: Document[];
+  projectDocs: Document[];
 }) {
   const scope = { contextType: "project" as const, clientId, projectId: project.id };
   const { messages, input, setInput, isLoading, sendMessage, handleKeyDown } = useChat(scope);
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  const conversations = getConversations(project.id);
-  const clientDocs = getClientDocs(project.clientId);
-  const projectDocs = getProjectDocs(project.id);
+  const conversations: { id: string; title: string; date: string; messageCount: number }[] = [];
   const allDocs = [...clientDocs, ...projectDocs];
   const [activeConvId, setActiveConvId] = useState(
     conversations[conversations.length - 1]?.id ?? null

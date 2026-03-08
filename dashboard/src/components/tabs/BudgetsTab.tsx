@@ -2,8 +2,6 @@
 
 import { useState, useMemo } from "react";
 import {
-  getBudgetProducts,
-  getProjectBudgetSummary,
   PAYMENT_STAGE_LABEL,
   type Project,
   type BudgetProduct,
@@ -22,11 +20,13 @@ type LocalProduct = {
 export function BudgetsTab({
   project,
   clientColor,
+  budgetProducts,
   localProducts: externalProducts = [],
   onAddProduct: externalAdd,
 }: {
   project: Project;
   clientColor: string;
+  budgetProducts: BudgetProduct[];
   localProducts?: LocalProduct[];
   onAddProduct?: (name: string, amount: number) => void;
 }) {
@@ -44,9 +44,8 @@ export function BudgetsTab({
       };
 
   const products = useMemo(() => {
-    const mock = getBudgetProducts(project.id);
     return [
-      ...mock,
+      ...budgetProducts,
       ...localProducts.map((p) => ({
         id: p.id,
         projectId: project.id,
@@ -55,14 +54,13 @@ export function BudgetsTab({
         devis: { amount: p.totalAmount, status: "pending" as const },
       })),
     ];
-  }, [project.id, localProducts]);
+  }, [budgetProducts, project.id, localProducts]);
 
   const { total, paid, remaining } = useMemo(() => {
-    const mock = getBudgetProducts(project.id);
     const t =
-      mock.reduce((s, p) => s + p.totalAmount, 0) +
+      budgetProducts.reduce((s, p) => s + p.totalAmount, 0) +
       localProducts.reduce((s, p) => s + p.totalAmount, 0);
-    const pd = mock.reduce((s, p) => {
+    const pd = budgetProducts.reduce((s, p) => {
       let amt = 0;
       if (p.acompte?.status === "paid") amt += p.acompte.amount ?? 0;
       if (p.avancement?.status === "paid") amt += p.avancement.amount ?? 0;
@@ -70,7 +68,7 @@ export function BudgetsTab({
       return s + amt;
     }, 0);
     return { total: t, paid: pd, remaining: t - pd };
-  }, [project.id, localProducts]);
+  }, [budgetProducts, localProducts]);
 
   const pct = total > 0 ? Math.round((paid / total) * 100) : 0;
 
