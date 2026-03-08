@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { Client, ClientCategory } from "@/lib/mock";
+import { createClient } from "@/app/(dashboard)/actions/clients";
 
 const TABS: { id: ClientCategory; label: string }[] = [
   { id: "client", label: "Clients" },
@@ -23,6 +24,25 @@ export function ClientSidebar({
   const pathname = usePathname();
   const activeId = pathname?.split("/")[1];
   const [tab, setTab] = useState<ClientCategory>("client");
+  const [showForm, setShowForm] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [formError, setFormError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+
+  function handleCreate() {
+    const name = newName.trim();
+    if (!name) return;
+    setFormError(null);
+    startTransition(async () => {
+      const result = await createClient({ name, category: tab === "prospect" ? "prospect" : "client" });
+      if (result.error) {
+        setFormError(result.error);
+        return;
+      }
+      setShowForm(false);
+      setNewName("");
+    });
+  }
 
   const clientsByTab: Record<ClientCategory, Client[]> = {
     client: clients,
@@ -80,12 +100,48 @@ export function ClientSidebar({
 
       {/* ── Footer ── */}
       <div className="shrink-0 p-3 border-t border-zinc-200 dark:border-zinc-800">
-        <button className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-zinc-500 hover:text-zinc-700 hover:bg-zinc-100 dark:text-zinc-600 dark:hover:text-zinc-400 dark:hover:bg-zinc-900 transition-colors text-sm">
-          <span className="text-base leading-none">+</span>
-          <span>
-            {tab === "client" ? "Nouveau client" : tab === "prospect" ? "Nouveau prospect" : "—"}
-          </span>
-        </button>
+        {showForm ? (
+          <div className="space-y-2">
+            <input
+              type="text"
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleCreate();
+                if (e.key === "Escape") { setShowForm(false); setNewName(""); setFormError(null); }
+              }}
+              placeholder={tab === "prospect" ? "Nom du prospect…" : "Nom du client…"}
+              autoFocus
+              className="w-full bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-2 text-xs text-zinc-800 dark:text-zinc-200 placeholder-zinc-400 dark:placeholder-zinc-600 outline-none focus:border-zinc-400 dark:focus:border-zinc-500 transition-colors"
+            />
+            {formError && <p className="text-[11px] text-red-500">{formError}</p>}
+            <div className="flex gap-2">
+              <button
+                onClick={handleCreate}
+                disabled={!newName.trim() || isPending}
+                className="flex-1 py-1.5 rounded-lg bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 text-xs font-medium disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                {isPending ? "…" : "Créer"}
+              </button>
+              <button
+                onClick={() => { setShowForm(false); setNewName(""); setFormError(null); }}
+                className="px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 text-xs text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        ) : (
+          tab !== "archived" && (
+            <button
+              onClick={() => setShowForm(true)}
+              className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-zinc-500 hover:text-zinc-700 hover:bg-zinc-100 dark:text-zinc-600 dark:hover:text-zinc-400 dark:hover:bg-zinc-900 transition-colors text-sm"
+            >
+              <span className="text-base leading-none">+</span>
+              <span>{tab === "prospect" ? "Nouveau prospect" : "Nouveau client"}</span>
+            </button>
+          )
+        )}
       </div>
     </aside>
   );
