@@ -8,6 +8,7 @@ import { ClientSidebar } from "@/components/ClientSidebar";
 import { DocumentViewer } from "@/components/DocumentViewer";
 import {
   getClient,
+  getClients,
   getClientProjects,
   getClientDocs,
   PROJECT_TYPE_LABEL,
@@ -99,7 +100,11 @@ export default function ClientPage({
   return (
     <>
       <GlobalNav />
-      <ClientSidebar />
+      <ClientSidebar
+        clients={getClients('client')}
+        prospects={getClients('prospect')}
+        archived={getClients('archived')}
+      />
       <DocumentViewer doc={viewerDoc} onClose={() => setViewerDoc(null)} />
 
       <div

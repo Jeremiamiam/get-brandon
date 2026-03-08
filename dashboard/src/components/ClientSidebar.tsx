@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { getClients, type Client, type ClientCategory } from "@/lib/mock";
+import type { Client, ClientCategory } from "@/lib/mock";
 
 const TABS: { id: ClientCategory; label: string }[] = [
   { id: "client", label: "Clients" },
@@ -11,11 +11,25 @@ const TABS: { id: ClientCategory; label: string }[] = [
   { id: "archived", label: "Archives" },
 ];
 
-export function ClientSidebar() {
+export function ClientSidebar({
+  clients,
+  prospects,
+  archived,
+}: {
+  clients: Client[]
+  prospects: Client[]
+  archived: Client[]
+}) {
   const pathname = usePathname();
   const activeId = pathname?.split("/")[1];
   const [tab, setTab] = useState<ClientCategory>("client");
-  const clients = getClients(tab);
+
+  const clientsByTab: Record<ClientCategory, Client[]> = {
+    client: clients,
+    prospect: prospects,
+    archived: archived,
+  }
+  const currentClients = clientsByTab[tab]
 
   return (
     <aside
@@ -55,10 +69,10 @@ export function ClientSidebar() {
 
       {/* ── List ── */}
       <nav className="flex-1 overflow-y-auto px-2">
-        {clients.length === 0 ? (
+        {currentClients.length === 0 ? (
           <p className="text-xs text-zinc-500 dark:text-zinc-700 px-3 py-4">Aucun élément</p>
         ) : (
-          clients.map((client) => (
+          currentClients.map((client) => (
             <ClientItem key={client.id} client={client} active={client.id === activeId} />
           ))
         )}
