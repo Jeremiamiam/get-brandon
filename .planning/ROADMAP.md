@@ -12,7 +12,7 @@ Brancher l'UI v2 existante (`dashboard/`) sur un vrai backend Supabase. Remplace
 
 ---
 
-## Phase 01 — Foundation: Auth + Infrastructure + Schema
+## Phase 01: Foundation — Auth + Infrastructure + Schema
 
 **Goal:** Supabase fonctionnel avec auth, schéma, RLS et données seed. Aucun changement UI.
 
@@ -37,15 +37,17 @@ Plans:
 
 ---
 
-## Phase 02 — Live Reads: Server Components
+## Phase 02: Live Reads — Server Components
 
 **Goal:** Toutes les pages fetchent depuis Supabase. L'UI est identique visuellement mais les données persistent entre sessions.
 
-**Plans:**
-- `02-01` — DAL layer : créer `lib/data/clients.ts`, `lib/data/projects.ts`, `lib/data/documents.ts` (initialement wrappent encore le mock)
-- `02-02` — Migrer `app/page.tsx` et `ClientSidebar` : lire la liste clients depuis Supabase
-- `02-03` — Migrer `app/[clientId]/page.tsx` : client + projets + docs depuis Supabase
-- `02-04` — Migrer `app/[clientId]/[projectId]/page.tsx` : projet + produits + docs depuis Supabase
+**Plans:** 4 plans
+
+Plans:
+- [ ] 02-01-PLAN.md — DAL layer : créer lib/data/clients.ts, projects.ts, documents.ts (server-only wrappers)
+- [ ] 02-02-PLAN.md — Migrer app/page.tsx + ClientSidebar : clients Supabase, sidebar prop-based
+- [ ] 02-03-PLAN.md — Migrer app/[clientId]/page.tsx : client + projets + docs depuis Supabase
+- [ ] 02-04-PLAN.md — Migrer app/[clientId]/[projectId]/page.tsx : projet + docs + shell extraction
 
 **Success criteria:**
 - [ ] Créer un client dans Supabase Studio → visible dans la sidebar sans code deploy
@@ -57,7 +59,7 @@ Plans:
 
 ---
 
-## Phase 03 — Live Writes: Server Actions + File Upload
+## Phase 03: Live Writes — Server Actions + File Upload
 
 **Goal:** CRUD complet (clients, projets, produits, documents, contacts) + upload PDF. Suppression des context providers legacy.
 
@@ -79,7 +81,7 @@ Plans:
 
 ---
 
-## Phase 04 — AI on Real Data: Context Builders Migration
+## Phase 04: AI on Real Data — Context Builders Migration
 
 **Goal:** Les 3 agents IA (agency / client / project) utilisent les vraies données Supabase. `mock.ts` supprimé.
 
