@@ -82,7 +82,7 @@ L'UI v2 (Next.js 16 + Tailwind v4) est entièrement construite avec des données
 - [ ] **PERF-3** — Upload PDF via signed URL (pas de proxy via Next.js)
 
 ### Architecture
-- [ ] **ARCH-1** — Couche DAL (`lib/data/*.ts`) introduite avant la migration — pas d'import mock direct dans les pages
+- [x] **ARCH-1** — Couche DAL (`lib/data/*.ts`) introduite avant la migration — pas d'import mock direct dans les pages
 - [ ] **ARCH-2** — Pages converties en Server Components async (data fetching côté serveur)
 - [ ] **ARCH-3** — Composants UI (`'use client'`) restent inchangés — reçoivent les données via props
 - [ ] **ARCH-4** — Supprimer `LocalProjects` et `ProjectOverrides` context providers après Phase 3
