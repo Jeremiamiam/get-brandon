@@ -26,7 +26,7 @@ L'UI v2 (Next.js 16 + Tailwind v4) est entièrement construite avec des données
 - [ ] **CLIENT-3** — Archiver un client (passage en catégorie `archived`)
 - [ ] **CLIENT-4** — Supprimer un client (soft delete ou hard delete)
 - [ ] **CLIENT-5** — Passer un prospect en client actif (changement de `category`)
-- [ ] **CLIENT-6** — Liste clients persistée et rechargée depuis Supabase
+- [x] **CLIENT-6** — Liste clients persistée et rechargée depuis Supabase
 
 ### Projets
 - [ ] **PROJECT-1** — Créer un projet (nom, type, statut, description)
@@ -83,8 +83,8 @@ L'UI v2 (Next.js 16 + Tailwind v4) est entièrement construite avec des données
 
 ### Architecture
 - [x] **ARCH-1** — Couche DAL (`lib/data/*.ts`) introduite avant la migration — pas d'import mock direct dans les pages
-- [ ] **ARCH-2** — Pages converties en Server Components async (data fetching côté serveur)
-- [ ] **ARCH-3** — Composants UI (`'use client'`) restent inchangés — reçoivent les données via props
+- [x] **ARCH-2** — Pages converties en Server Components async (data fetching côté serveur)
+- [x] **ARCH-3** — Composants UI (`'use client'`) restent inchangés — reçoivent les données via props
 - [ ] **ARCH-4** — Supprimer `LocalProjects` et `ProjectOverrides` context providers après Phase 3
 - [ ] **ARCH-5** — Supprimer `mock.ts` en fin de Phase 4
 - [x] **ARCH-6** — Tous les scripts SQL (schéma, RLS, indexes, seed) rangés dans `dashboard/supabase/migrations/` avec nommage séquentiel (`001_schema.sql`, `002_rls.sql`, `003_seed.sql`, etc.) — exécution manuelle dans Supabase Studio SQL Editor dans l'ordre numérique
