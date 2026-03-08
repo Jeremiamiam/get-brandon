@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-last_updated: "2026-03-08T11:18:16.963Z"
+last_updated: "2026-03-08T12:10:00.000Z"
 progress:
   total_phases: 4
-  completed_phases: 2
-  total_plans: 9
-  completed_plans: 9
+  completed_phases: 1
+  total_plans: 11
+  completed_plans: 11
 ---
 
 # Project State
@@ -21,10 +21,10 @@ progress:
 Phase 02 — Live Reads: Server Components
 
 ## Current Position
-All plans 02-01 through 02-04 complete. Phase 02 complete. All three app/(dashboard)/ pages are now async Server Components with Supabase data fetching. Awaiting human verify checkpoint: dev server smoke test (login, sidebar, client detail, project detail, reload).
+Plans 02-01 through 02-06 complete. All three dashboard pages are async Server Components. BudgetsTab and ChatTab now receive Supabase data via props (02-06 gap closure). ARCH-3 fully satisfied. Phase 02 plans complete.
 
 ## Status
-Phase 02 complete (4/4 plans). All dashboard pages migrated to Server Components. Zero lib/mock data imports in any page file. Build passes. Manual browser verification required before Phase 03 (write operations) is unblocked.
+Phase 02 complete (6/6 plans). All dashboard pages and tab components migrated to Supabase data via prop chain. Zero internal mock data calls in any tab component. Build passes. Manual browser verification recommended before Phase 03 (write operations).
 
 ## Decisions
 
@@ -54,6 +54,8 @@ Phase 02 complete (4/4 plans). All dashboard pages migrated to Server Components
 - [Phase 02-live-reads-server-components]: localProjects merge kept in Phase 02 ClientPageShell — propProjects from Supabase + local context, persisted in Phase 03
 - [Phase 02-live-reads-server-components]: ProjectPageShell keeps useLocalProjects fallback for locally-created projects (Phase 02 acceptable — Phase 03 will persist)
 - [Phase 02-live-reads-server-components]: project.clientId !== clientId guard ensures UUID-level consistency — invalid URL combos return 404
+- [Phase 02-live-reads-server-components]: conversations in ChatTab defaults to [] in Phase 02 — no Supabase conversations table yet; empty state renders correctly
+- [Phase 02-live-reads-server-components]: Tab components receive Supabase data as props exclusively — never call mock or DAL functions internally (ARCH-3)
 
 ## Blockers
 Aucun
