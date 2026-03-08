@@ -6,6 +6,7 @@ import { ClientSidebar } from "@/components/ClientSidebar";
 import {
   CLIENTS,
   PROJECTS,
+  getClients,
   getProjectBudgetSummary,
   type Client,
 } from "@/lib/mock";
@@ -51,7 +52,11 @@ export default function ComptaPage() {
   return (
     <>
       <GlobalNav />
-      <ClientSidebar />
+      <ClientSidebar
+        clients={getClients('client')}
+        prospects={getClients('prospect')}
+        archived={getClients('archived')}
+      />
 
       <div
         className="flex flex-col min-h-screen bg-zinc-50 dark:bg-zinc-950"

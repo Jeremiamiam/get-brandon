@@ -10,6 +10,7 @@ import { DocumentsTab } from "@/components/tabs/DocumentsTab";
 import { BudgetsTab } from "@/components/tabs/BudgetsTab";
 import {
   getClient,
+  getClients,
   getProject,
   PROJECT_TYPE_LABEL,
   PROJECT_STATUS_CONFIG,
@@ -59,7 +60,11 @@ export default function ProjectPage({
   return (
     <>
       <GlobalNav />
-      <ClientSidebar />
+      <ClientSidebar
+        clients={getClients('client')}
+        prospects={getClients('prospect')}
+        archived={getClients('archived')}
+      />
 
       <div
         className="flex flex-col h-screen bg-zinc-50 dark:bg-zinc-950"
