@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-last_updated: "2026-03-08T17:44:35.031Z"
+last_updated: "2026-03-08T17:58:29.006Z"
 progress:
   total_phases: 4
   completed_phases: 3
@@ -71,6 +71,7 @@ Phase 03 complete (5/5 plans). All Server Actions wired. Legacy context provider
 - [Phase 03]: useTransition used in ClientPageShell and BudgetsTab for Server Action pending states — provides visual feedback without blocking UI
 - [Phase 03]: potentialAmount persisted onBlur (not onChange) in BudgetsTab to avoid Server Action call on every keystroke
 - [Phase 03]: LocalProjects and ProjectOverrides contexts deleted — all project creation and potentialAmount persistence now go through Server Actions (ARCH-4 complete)
+- [Phase Phase 03]: ClientSidebar createClient Server Action wired at checkpoint — 'Nouveau client/prospect' button now creates client in Supabase
 
 ## Blockers
 Aucun

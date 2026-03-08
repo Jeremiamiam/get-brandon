@@ -36,6 +36,7 @@ key-files:
     - dashboard/src/components/ClientPageShell.tsx
     - dashboard/src/components/ProjectPageShell.tsx
     - dashboard/src/components/tabs/BudgetsTab.tsx
+    - dashboard/src/components/ClientSidebar.tsx
     - dashboard/src/app/layout.tsx
   deleted:
     - dashboard/src/context/LocalProjects.tsx
@@ -68,8 +69,8 @@ completed: 2026-03-08
 - **Duration:** ~24 min
 - **Started:** 2026-03-08T13:39:23Z
 - **Completed:** 2026-03-08T14:03:00Z
-- **Tasks:** 2 of 2 (checkpoint:human-verify pending)
-- **Files modified:** 4 modified, 2 deleted
+- **Tasks:** 3 of 3 (checkpoint:human-verify approved)
+- **Files modified:** 5 modified, 2 deleted
 
 ## Accomplishments
 
@@ -84,12 +85,14 @@ completed: 2026-03-08
 
 1. **Task 1: Wire Server Actions in ClientPageShell + ProjectPageShell + BudgetsTab** — `2ee8feb` (feat)
 2. **Task 2: Delete LocalProjects + ProjectOverrides contexts, clean layout.tsx** — `bc51d34` (feat)
+3. **Task 3 (checkpoint approved + ClientSidebar extra fix)** — `c9a33c8` (feat)
 
 ## Files Created/Modified
 
 - `dashboard/src/components/ClientPageShell.tsx` — Server Actions wired; local state removed
 - `dashboard/src/components/ProjectPageShell.tsx` — useLocalProjects removed; redirect guard added; BudgetsTab props cleaned
 - `dashboard/src/components/tabs/BudgetsTab.tsx` — useProjectOverrides removed; updateProject onBlur; createBudgetProduct on submit
+- `dashboard/src/components/ClientSidebar.tsx` — "Nouveau client/prospect" button wired to createClient Server Action with inline form
 - `dashboard/src/app/layout.tsx` — LocalProjectsProvider + ProjectOverridesProvider removed
 - `dashboard/src/context/LocalProjects.tsx` — DELETED
 - `dashboard/src/context/ProjectOverrides.tsx` — DELETED
@@ -103,7 +106,20 @@ completed: 2026-03-08
 
 ## Deviations from Plan
 
-None - plan executed exactly as written.
+### Extra Work Applied at Checkpoint
+
+**1. [Out-of-plan] ClientSidebar "Nouveau client/prospect" button wired to createClient Server Action**
+- **Found during:** Checkpoint human-verify (manual testing revealed button was a static placeholder)
+- **Issue:** createClient Server Action existed but was not connected to any UI — clicking "Nouveau client" had no effect
+- **Fix:** Added inline form with text input, useTransition for pending state, inline error display, Escape/Enter key handling, category derived from current tab
+- **Files modified:** dashboard/src/components/ClientSidebar.tsx
+- **Verification:** Manual verification at checkpoint confirmed client creation persists to DB
+- **Committed in:** c9a33c8 (post-checkpoint commit)
+
+---
+
+**Total deviations:** 1 extra fix (unwired Server Action discovered during manual testing)
+**Impact on plan:** Necessary for completeness — createClient existed from 03-02 but was unreachable from UI. No scope creep.
 
 ## Issues Encountered
 
@@ -116,8 +132,9 @@ None - no external service configuration required.
 ## Next Phase Readiness
 
 - Phase 03 write layer fully complete: all Server Actions wired, all legacy context providers removed
-- `npm run build` should pass (TypeScript confirmed; full Next.js build not run — human-verify checkpoint covers this)
-- Phase 04 (AI pipeline) can proceed: clean component tree, no legacy state management
+- Human-verify checkpoint approved: build passes, project creation persists, budget potentialAmount persists, zero console errors, invalid UUID redirects correctly
+- ClientSidebar createClient fully wired (extra fix applied at checkpoint)
+- Phase 04 (AI pipeline) can proceed: clean component tree, no legacy state management, all writes through Server Actions
 
 ---
 *Phase: 03-live-writes-server-actions-file-upload*
