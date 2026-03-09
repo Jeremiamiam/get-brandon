@@ -4,7 +4,71 @@ import 'server-only'
 
 import { revalidatePath } from 'next/cache'
 import { createClient as createSupabaseClient } from '@/lib/supabase/server'
+import Anthropic from '@anthropic-ai/sdk'
 import type { Document } from '@/lib/types'
+
+// ─── extractDocumentContent ────────────────────────────────────
+// Private helper: extracts text from uploaded documents after successful insert.
+// - .txt / .md: downloads bytes, reads as UTF-8
+// - .pdf: downloads bytes, base64-encodes, sends to Claude Haiku vision
+// - other types: skipped (content stays null)
+// Failure is non-blocking — caller wraps in try/catch.
+async function extractDocumentContent(
+  supabase: Awaited<ReturnType<typeof createSupabaseClient>>,
+  storagePath: string,
+  _documentId: string,
+  userId: string
+): Promise<void> {
+  const ext = storagePath.split('.').pop()?.toLowerCase()
+  let extractedText: string | null = null
+
+  if (ext === 'txt' || ext === 'md') {
+    // Plain text extraction — no Claude needed
+    const { data: fileData, error: downloadError } = await supabase.storage
+      .from('documents')
+      .download(storagePath)
+    if (!downloadError && fileData) {
+      extractedText = await fileData.text()
+    }
+  } else if (ext === 'pdf') {
+    // PDF extraction via Claude Haiku vision (base64 approach — robust)
+    const { data: fileData, error: downloadError } = await supabase.storage
+      .from('documents')
+      .download(storagePath)
+    if (!downloadError && fileData) {
+      const arrayBuffer = await fileData.arrayBuffer()
+      const pdfBase64 = Buffer.from(arrayBuffer).toString('base64')
+      const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+      const response = await anthropic.messages.create({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 4096,
+        messages: [{
+          role: 'user',
+          content: [
+            {
+              type: 'document',
+              source: { type: 'base64', media_type: 'application/pdf', data: pdfBase64 },
+            },
+            {
+              type: 'text',
+              text: 'Extrais tout le contenu textuel de ce document. Retourne uniquement le texte extrait, sans commentaire.',
+            },
+          ],
+        }],
+      })
+      extractedText = response.content[0]?.type === 'text' ? response.content[0].text : null
+    }
+  }
+  // Other file types: skip extraction (content stays null)
+
+  if (extractedText) {
+    await supabase
+      .from('documents')
+      .update({ content: extractedText })
+      .eq('storage_path', storagePath)
+      .eq('owner_id', userId)
+  }
+}
 
 // ─── createNote ────────────────────────────────────────────────
 // INSERT document de type texte libre.
@@ -148,6 +212,13 @@ export async function saveDocumentRecord(params: {
 
   if (error) {
     return { error: error.message }
+  }
+
+  // Non-blocking content extraction — wrap in try/catch, never block upload
+  try {
+    await extractDocumentContent(supabase, params.storagePath, '', user.id)
+  } catch (extractErr) {
+    console.warn('[saveDocumentRecord] content extraction failed, skipping:', extractErr)
   }
 
   revalidatePath(`/${params.clientId}`, 'page')
