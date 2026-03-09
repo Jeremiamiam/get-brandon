@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-last_updated: "2026-03-09T20:46:11.217Z"
+last_updated: "2026-03-09T21:03:10.997Z"
 progress:
   total_phases: 4
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 21
-  completed_plans: 19
+  completed_plans: 21
 ---
 
 # Project State
@@ -79,6 +79,9 @@ Phase 04 in progress (3/5 plans). Chat route secured and model-aware. Document c
 - [Phase 04]: MODEL_BY_SCOPE: agency uses Haiku (cost), client/project use Opus (quality)
 - [Phase 04]: finalMessage() called after for-await loop to access accumulated token usage stats
 - [Phase 04]: PDF extraction: non-blocking try/catch around extractDocumentContent in saveDocumentRecord — failure never blocks upload
+- [Phase 04-05]: ClientChatDrawer inlines chat UI directly using useChat({ contextType: 'client', clientId }) — avoids dummy Client object for cosmetic header
+- [Phase 04-05]: ProduitsTab.tsx deleted (dead code — BudgetsTab is the active produits tab, ProduitsTab had zero importers)
+- [Phase 04-05]: DocumentViewer mock content fallback removed — real Supabase docs use content (note) or storagePath (PDF)
 
 ## Blockers
 Aucun
