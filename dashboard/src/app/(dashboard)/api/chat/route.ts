@@ -13,8 +13,8 @@ type ChatRequest = {
 
 const MODEL_BY_SCOPE: Record<"agency" | "client" | "project", string> = {
   agency: "claude-haiku-4-5-20251001",
-  client: "claude-opus-4-6",
-  project: "claude-opus-4-6",
+  client: "claude-sonnet-4-5",
+  project: "claude-sonnet-4-5",
 };
 
 export async function POST(req: Request) {
