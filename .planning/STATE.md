@@ -18,13 +18,13 @@ progress:
 **Last updated:** 2026-03-08
 
 ## Current Phase
-Phase 04 in progress — plan 04-02 complete
+Phase 04 in progress — plan 04-03 complete
 
 ## Current Position
-04-02 complete. getClientDocsWithPinned() added to lib/data/documents.ts using .or('project_id.is.null,is_pinned.eq.true'). storagePath field added to toDocument mapper. Build passes clean. Next: 04-03 (context-builders migration to async Supabase calls).
+04-03 complete. Chat route secured with getUser() auth gate (401). MODEL_BY_SCOPE constant routes agency to Haiku, client/project to Opus. stream.finalMessage() logs token usage after each response. saveDocumentRecord extended with extractDocumentContent() helper: txt/md via direct text(), PDF via Claude Haiku vision base64 — non-blocking. Next: 04-04 (async context builders).
 
 ## Status
-Phase 04 in progress (2/5 plans). Documents DAL extended for AI context scopes. getClientDocs unchanged for UI. storagePath available for PDF extraction pipeline.
+Phase 04 in progress (3/5 plans). Chat route secured and model-aware. Document content extraction pipeline live. documents.content populated for PDF/txt uploads — ready for context injection in 04-05.
 
 ## Decisions
 
