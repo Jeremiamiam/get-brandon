@@ -2,7 +2,7 @@
 
 **Milestone:** v1.0 — Supabase Backend Migration
 **Working directory:** `dashboard/` (Next.js 16 app, UI shell existante)
-**Last updated:** 2026-03-08
+**Last updated:** 2026-03-09
 
 ---
 
@@ -89,11 +89,14 @@ Plans:
 
 **Goal:** Les 3 agents IA (agency / client / project) utilisent les vraies données Supabase. `mock.ts` supprimé.
 
-**Plans:**
-- `04-01` — Research : token budget calibration + stratégie d'injection des notes de documents
-- `04-02` — Migrer `lib/context-builders.ts` : buildAgencyContext, buildClientContext, buildProjectContext → async Supabase queries
-- `04-03` — Token budgets + défense prompt injection : XML-tags structurels, truncation strategy, logging `input_tokens`
-- `04-04` — Supprimer `mock.ts` + `lib/doc-content.ts` + validation end-to-end
+**Plans:** 5 plans
+
+Plans:
+- [ ] 04-01-PLAN.md — Créer lib/types.ts + migrer tous les imports from @/lib/mock vers @/lib/types
+- [ ] 04-02-PLAN.md — DAL : ajouter getClientDocsWithPinned() + storagePath dans toDocument mapper
+- [ ] 04-03-PLAN.md — route.ts : auth gate + model selection + finalMessage logging + saveDocumentRecord PDF/txt extraction
+- [ ] 04-04-PLAN.md — Migrer context-builders.ts : async DAL + token budget + XML injection defense + route.ts await
+- [ ] 04-05-PLAN.md — AgencyChatDrawer + GlobalNav Brandon button + supprimer mock.ts + doc-content.ts + checkpoint validation
 
 **Success criteria:**
 - [ ] Les 3 scopes IA répondent avec les vraies données (clients, projets, billing, documents)
@@ -113,9 +116,9 @@ Plans:
 | 01 — Foundation | 5/5 | Complete    | 2026-03-08 |
 | 02 — Live Reads | 6/6 | Complete    | 2026-03-08 |
 | 03 — Live Writes | 5/5 | Complete   | 2026-03-08 |
-| 04 — AI on Real Data | Context builders + mock.ts delete | 4 | planned |
+| 04 — AI on Real Data | Context builders + mock.ts delete | 5 | planned |
 
-**Total:** 20 plans
+**Total:** 21 plans
 
 ---
 
