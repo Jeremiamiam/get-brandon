@@ -1,25 +1,20 @@
-# Données clients — jamais dans le repo
-clients/
-JSON/
-PLATEFORME/
-
-# macOS
-.DS_Store
-
-# Secrets
+# Env
 .env
 .env.local
+.env*.local
 
-# Dashboard (Next.js)
-dashboard/node_modules/
+# Next.js
 dashboard/.next/
+dashboard/node_modules/
 
-# Brandon vocal (Python)
-brandon-vocal/venv/
-brandon-vocal/__pycache__/
+# OS
+.DS_Store
 
-# Webapp (archivée)
+# Archives
+clients/
 webapp/
-
-# Node (racine)
+JSON/
+PLATEFORME/
+brandon-vocal/
+ornanza-proto/
 node_modules/

@@ -1,35 +1,42 @@
 import type { Metadata } from "next";
-import { Syne, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
-
-const syne = Syne({
-  variable: "--font-syne",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-});
-
-const jetbrains = JetBrains_Mono({
-  variable: "--font-mono",
-  subsets: ["latin"],
-  weight: ["400", "500"],
-});
+import { ClientChatDrawerProvider } from "@/context/ClientChatDrawer";
+import { ThemeProvider } from "@/context/ThemeContext";
+import { ClientChatDrawer } from "@/components/ClientChatDrawer";
 
 export const metadata: Metadata = {
-  title: "getBrandon — Dashboard clients",
-  description: "Vue d'ensemble des clients et wikis getBrandon",
+  title: "YamBoard",
+  description: "Agence Yam — espace client",
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="fr" className="dark">
-      <body
-        className={`${syne.variable} ${jetbrains.variable} font-sans antialiased bg-[#0a0a0b] text-zinc-200`}
-      >
-        {children}
+    <html lang="fr" suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  var stored = localStorage.getItem('theme');
+                  var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                  var theme = stored || (prefersDark ? 'dark' : 'light');
+                  var html = document.documentElement;
+                  html.setAttribute('data-theme', theme);
+                  html.classList.toggle('dark', theme === 'dark');
+                } catch (e) {}
+              })();
+            `,
+          }}
+        />
+      </head>
+      <body className="antialiased">
+        <ThemeProvider>
+          <ClientChatDrawerProvider>
+            {children}
+            <ClientChatDrawer />
+          </ClientChatDrawerProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
