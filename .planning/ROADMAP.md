@@ -89,11 +89,11 @@ Plans:
 
 **Goal:** Les 3 agents IA (agency / client / project) utilisent les vraies données Supabase. `mock.ts` supprimé.
 
-**Plans:** 1/5 plans executed
+**Plans:** 2/5 plans executed
 
 Plans:
-- [ ] 04-01-PLAN.md — Créer lib/types.ts + migrer tous les imports from @/lib/mock vers @/lib/types
-- [ ] 04-02-PLAN.md — DAL : ajouter getClientDocsWithPinned() + storagePath dans toDocument mapper
+- [x] 04-01-PLAN.md — Créer lib/types.ts + migrer tous les imports from @/lib/mock vers @/lib/types
+- [x] 04-02-PLAN.md — DAL : ajouter getClientDocsWithPinned() + storagePath dans toDocument mapper
 - [ ] 04-03-PLAN.md — route.ts : auth gate + model selection + finalMessage logging + saveDocumentRecord PDF/txt extraction
 - [ ] 04-04-PLAN.md — Migrer context-builders.ts : async DAL + token budget + XML injection defense + route.ts await
 - [ ] 04-05-PLAN.md — AgencyChatDrawer + GlobalNav Brandon button + supprimer mock.ts + doc-content.ts + checkpoint validation

@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-last_updated: "2026-03-09T20:42:35.465Z"
+last_updated: "2026-03-09T20:46:11.217Z"
 progress:
   total_phases: 4
   completed_phases: 3
   total_plans: 21
-  completed_plans: 17
+  completed_plans: 19
 ---
 
 # Project State
@@ -18,13 +18,13 @@ progress:
 **Last updated:** 2026-03-08
 
 ## Current Phase
-Phase 04 in progress — plan 04-01 complete
+Phase 04 in progress — plan 04-02 complete
 
 ## Current Position
-04-01 complete. lib/types.ts created with all shared types and UI config maps. 18 files migrated from @/lib/mock to @/lib/types. Build passes clean. Next: 04-02 (context-builders refactor).
+04-02 complete. getClientDocsWithPinned() added to lib/data/documents.ts using .or('project_id.is.null,is_pinned.eq.true'). storagePath field added to toDocument mapper. Build passes clean. Next: 04-03 (context-builders migration to async Supabase calls).
 
 ## Status
-Phase 04 in progress (1/5 plans). Types migration complete. lib/types.ts is the new home for all type exports. mock.ts runtime arrays still present until 04-05.
+Phase 04 in progress (2/5 plans). Documents DAL extended for AI context scopes. getClientDocs unchanged for UI. storagePath available for PDF extraction pipeline.
 
 ## Decisions
 
@@ -74,6 +74,11 @@ Phase 04 in progress (1/5 plans). Types migration complete. lib/types.ts is the 
 - [Phase Phase 03]: ClientSidebar createClient Server Action wired at checkpoint — 'Nouveau client/prospect' button now creates client in Supabase
 - [Phase 04]: lib/types.ts has no server-only import — used by both server and client components
 - [Phase 04]: All type imports migrated to @/lib/types; mock.ts runtime arrays stay until plan 04-05
+- [04-02]: getClientDocs unchanged for UI (project_id IS NULL only); getClientDocsWithPinned added for AI context scope using .or() filter
+- [04-02]: storagePath mapped in toDocument from storage_path column — enables PDF re-extraction path in 04-04
+- [Phase 04]: MODEL_BY_SCOPE: agency uses Haiku (cost), client/project use Opus (quality)
+- [Phase 04]: finalMessage() called after for-await loop to access accumulated token usage stats
+- [Phase 04]: PDF extraction: non-blocking try/catch around extractDocumentContent in saveDocumentRecord — failure never blocks upload
 
 ## Blockers
 Aucun
