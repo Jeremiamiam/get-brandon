@@ -19,6 +19,7 @@ function toDocument(row: Record<string, unknown>): Document {
     }),
     size,
     content: (row.content as string | null) ?? undefined,
+    storagePath: (row.storage_path as string | null) ?? undefined,
   }
 }
 
@@ -29,6 +30,20 @@ export async function getClientDocs(clientId: string): Promise<Document[]> {
     .select('*')
     .eq('client_id', clientId)
     .is('project_id', null)
+    .order('created_at', { ascending: true })
+  if (error) throw new Error(error.message)
+  return (data ?? []).map(toDocument)
+}
+
+// Client context (AI-2): docs where project_id IS NULL OR is_pinned = true
+// This matches what the UI shows at client level — brand docs + pinned project docs
+export async function getClientDocsWithPinned(clientId: string): Promise<Document[]> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('documents')
+    .select('*')
+    .eq('client_id', clientId)
+    .or('project_id.is.null,is_pinned.eq.true')
     .order('created_at', { ascending: true })
   if (error) throw new Error(error.message)
   return (data ?? []).map(toDocument)
