@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-last_updated: "2026-03-09T21:03:10.997Z"
+last_updated: "2026-03-09T21:20:33.616Z"
 progress:
   total_phases: 4
   completed_phases: 4
@@ -82,6 +82,9 @@ Phase 04 in progress (3/5 plans). Chat route secured and model-aware. Document c
 - [Phase 04-05]: ClientChatDrawer inlines chat UI directly using useChat({ contextType: 'client', clientId }) — avoids dummy Client object for cosmetic header
 - [Phase 04-05]: ProduitsTab.tsx deleted (dead code — BudgetsTab is the active produits tab, ProduitsTab had zero importers)
 - [Phase 04-05]: DocumentViewer mock content fallback removed — real Supabase docs use content (note) or storagePath (PDF)
+- [Phase 04-05]: react-markdown for assistant messages only; user messages stay plain text with pre-wrap
+- [Phase 04-05]: Sonnet (claude-sonnet-4-5) for client/project over Opus — 3x faster for conversational use, same quality
+- [Phase 04-05]: sessionStorage persistence for client/project chat scopes keyed by chat:client:{id} and chat:project:{clientId}:{projectId}
 
 ## Blockers
 Aucun
