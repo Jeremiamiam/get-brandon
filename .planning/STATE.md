@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-last_updated: "2026-03-08T17:58:29.006Z"
+last_updated: "2026-03-09T20:42:35.465Z"
 progress:
   total_phases: 4
   completed_phases: 3
-  total_plans: 16
-  completed_plans: 16
+  total_plans: 21
+  completed_plans: 17
 ---
 
 # Project State
@@ -18,13 +18,13 @@ progress:
 **Last updated:** 2026-03-08
 
 ## Current Phase
-Phase 03 complete — Phase 04 next (AI pipeline research sprint required)
+Phase 04 in progress — plan 04-01 complete
 
 ## Current Position
-All 5 plans of Phase 03 complete. Server Actions wired into all shells. LocalProjects.tsx and ProjectOverrides.tsx deleted. layout.tsx cleaned. TypeScript compiles clean. Awaiting checkpoint:human-verify for 03-05 (build + UI regression test).
+04-01 complete. lib/types.ts created with all shared types and UI config maps. 18 files migrated from @/lib/mock to @/lib/types. Build passes clean. Next: 04-02 (context-builders refactor).
 
 ## Status
-Phase 03 complete (5/5 plans). All Server Actions wired. Legacy context providers removed. ARCH-4 satisfied. Phase 04 requires research sprint on token budgets before implementation.
+Phase 04 in progress (1/5 plans). Types migration complete. lib/types.ts is the new home for all type exports. mock.ts runtime arrays still present until 04-05.
 
 ## Decisions
 
@@ -72,6 +72,8 @@ Phase 03 complete (5/5 plans). All Server Actions wired. Legacy context provider
 - [Phase 03]: potentialAmount persisted onBlur (not onChange) in BudgetsTab to avoid Server Action call on every keystroke
 - [Phase 03]: LocalProjects and ProjectOverrides contexts deleted — all project creation and potentialAmount persistence now go through Server Actions (ARCH-4 complete)
 - [Phase Phase 03]: ClientSidebar createClient Server Action wired at checkpoint — 'Nouveau client/prospect' button now creates client in Supabase
+- [Phase 04]: lib/types.ts has no server-only import — used by both server and client components
+- [Phase 04]: All type imports migrated to @/lib/types; mock.ts runtime arrays stay until plan 04-05
 
 ## Blockers
 Aucun

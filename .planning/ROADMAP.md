@@ -89,7 +89,7 @@ Plans:
 
 **Goal:** Les 3 agents IA (agency / client / project) utilisent les vraies données Supabase. `mock.ts` supprimé.
 
-**Plans:** 5 plans
+**Plans:** 1/5 plans executed
 
 Plans:
 - [ ] 04-01-PLAN.md — Créer lib/types.ts + migrer tous les imports from @/lib/mock vers @/lib/types
@@ -116,7 +116,7 @@ Plans:
 | 01 — Foundation | 5/5 | Complete    | 2026-03-08 |
 | 02 — Live Reads | 6/6 | Complete    | 2026-03-08 |
 | 03 — Live Writes | 5/5 | Complete   | 2026-03-08 |
-| 04 — AI on Real Data | Context builders + mock.ts delete | 5 | planned |
+| 04 — AI on Real Data | 1/5 | In Progress|  |
 
 **Total:** 21 plans
 

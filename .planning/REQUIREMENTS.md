@@ -58,12 +58,12 @@ L'UI v2 (Next.js 16 + Tailwind v4) est entièrement construite avec des données
 - [x] **CONTACT-4** — Marquer un contact comme principal (`is_primary`)
 
 ### Agents IA
-- [ ] **AI-1** — Contexte `agency` : noms + statuts + résumés projets de tous les clients (pas les docs complets)
-- [ ] **AI-2** — Contexte `client` : projets + docs + contacts du client
-- [ ] **AI-3** — Contexte `project` : projet + docs projet + docs client pinnés
-- [ ] **AI-4** — Notes de documents injectées dans le contexte agent
-- [ ] **AI-5** — Token budget par scope : agency ≤20K, client ≤30K, project ≤40K
-- [ ] **AI-6** — Séparation structurelle XML entre instructions système et données injectées (anti-injection)
+- [x] **AI-1** — Contexte `agency` : noms + statuts + résumés projets de tous les clients (pas les docs complets)
+- [x] **AI-2** — Contexte `client` : projets + docs + contacts du client
+- [x] **AI-3** — Contexte `project` : projet + docs projet + docs client pinnés
+- [x] **AI-4** — Notes de documents injectées dans le contexte agent
+- [x] **AI-5** — Token budget par scope : agency ≤20K, client ≤30K, project ≤40K
+- [x] **AI-6** — Séparation structurelle XML entre instructions système et données injectées (anti-injection)
 
 ---
 
@@ -86,7 +86,7 @@ L'UI v2 (Next.js 16 + Tailwind v4) est entièrement construite avec des données
 - [x] **ARCH-2** — Pages converties en Server Components async (data fetching côté serveur)
 - [x] **ARCH-3** — Composants UI (`'use client'`) restent inchangés — reçoivent les données via props
 - [x] **ARCH-4** — Supprimer `LocalProjects` et `ProjectOverrides` context providers après Phase 3
-- [ ] **ARCH-5** — Supprimer `mock.ts` en fin de Phase 4
+- [x] **ARCH-5** — Supprimer `mock.ts` en fin de Phase 4
 - [x] **ARCH-6** — Tous les scripts SQL (schéma, RLS, indexes, seed) rangés dans `dashboard/supabase/migrations/` avec nommage séquentiel (`001_schema.sql`, `002_rls.sql`, `003_seed.sql`, etc.) — exécution manuelle dans Supabase Studio SQL Editor dans l'ordre numérique
 
 ---
