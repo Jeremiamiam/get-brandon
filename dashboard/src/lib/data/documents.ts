@@ -23,11 +23,12 @@ function toDocument(row: Record<string, unknown>): Document {
   }
 }
 
+/** Liste docs client (sans content pour perf — content chargé à la demande via getDocument) */
 export async function getClientDocs(clientId: string): Promise<Document[]> {
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('documents')
-    .select('*')
+    .select('id, client_id, project_id, name, type, updated_at, storage_path, is_pinned')
     .eq('client_id', clientId)
     .is('project_id', null)
     .order('created_at', { ascending: true })
@@ -41,7 +42,7 @@ export async function getClientDocsWithPinned(clientId: string): Promise<Documen
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('documents')
-    .select('*')
+    .select('id, client_id, project_id, name, type, updated_at, content, storage_path, is_pinned')
     .eq('client_id', clientId)
     .or('project_id.is.null,is_pinned.eq.true')
     .order('created_at', { ascending: true })
@@ -53,7 +54,7 @@ export async function getProjectDocs(projectId: string): Promise<Document[]> {
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('documents')
-    .select('*')
+    .select('id, client_id, project_id, name, type, updated_at, storage_path, is_pinned')
     .eq('project_id', projectId)
     .order('created_at', { ascending: true })
   if (error) throw new Error(error.message)
@@ -68,7 +69,7 @@ export async function getProjectDocsForProjects(
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('documents')
-    .select('*')
+    .select('id, client_id, project_id, name, type, updated_at, storage_path, is_pinned')
     .in('project_id', projectIds)
     .order('created_at', { ascending: true })
   if (error) throw new Error(error.message)
@@ -118,6 +119,26 @@ export async function getBudgetProductsForProjects(
   const byProject: Record<string, BudgetProduct[]> = {}
   for (const pid of projectIds) byProject[pid] = []
   for (const row of rows) {
+    byProject[row.projectId].push(row)
+  }
+  return byProject
+}
+
+/** 1 requête pour tous les budget_products d'un client (via RPC join) — parallélisable avec getClientProjects */
+export async function getBudgetProductsForClient(
+  clientId: string
+): Promise<Record<string, BudgetProduct[]>> {
+  const supabase = await createClient()
+  const { data, error } = await supabase.rpc('get_budget_products_for_client', {
+    p_client_id: clientId,
+  })
+  if (error) throw new Error(error.message)
+  const rows = ((data ?? []) as Record<string, unknown>[]).map((row) =>
+    toBudgetProduct(row)
+  )
+  const byProject: Record<string, BudgetProduct[]> = {}
+  for (const row of rows) {
+    if (!byProject[row.projectId]) byProject[row.projectId] = []
     byProject[row.projectId].push(row)
   }
   return byProject

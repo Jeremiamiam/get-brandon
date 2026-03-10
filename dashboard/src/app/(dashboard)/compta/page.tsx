@@ -1,7 +1,5 @@
 // NO "use client"
 import Link from "next/link"
-import { GlobalNav } from "@/components/GlobalNav"
-import { ClientSidebar } from "@/components/ClientSidebar"
 import { getClientsAll } from "@/lib/data/clients"
 import { getProjectsForClients } from "@/lib/data/projects"
 import { getBudgetProductsForProjects } from "@/lib/data/documents"
@@ -51,13 +49,6 @@ export default async function ComptaPage() {
 
   return (
     <>
-      <GlobalNav />
-      <ClientSidebar
-        clients={sidebar.clients}
-        prospects={sidebar.prospects}
-        archived={sidebar.archived}
-      />
-
       <div
         className="flex flex-col min-h-screen bg-zinc-50 dark:bg-zinc-950"
         style={{ paddingLeft: "var(--sidebar-w)", paddingTop: "var(--nav-h)" }}
@@ -94,6 +85,7 @@ export default async function ComptaPage() {
               <Link
                 key={client.id}
                 href={`/${client.id}`}
+                prefetch
                 className="flex items-center justify-between py-3 px-4 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors group"
               >
                 <div className="flex items-center gap-3">

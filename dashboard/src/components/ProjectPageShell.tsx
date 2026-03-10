@@ -3,8 +3,6 @@
 import { useState, useEffect } from "react";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { GlobalNav } from "@/components/GlobalNav";
-import { ClientSidebar } from "@/components/ClientSidebar";
 import { ChatTab } from "@/components/tabs/ChatTab";
 import { DocumentsTab } from "@/components/tabs/DocumentsTab";
 import { BudgetsTab } from "@/components/tabs/BudgetsTab";
@@ -34,9 +32,6 @@ type Props = {
   budgetProducts: BudgetProduct[]
   clientId: string
   projectId: string
-  clients: Client[]
-  prospects: Client[]
-  archived: Client[]
 }
 
 export function ProjectPageShell({
@@ -47,9 +42,6 @@ export function ProjectPageShell({
   budgetProducts,
   clientId,
   projectId,
-  clients,
-  prospects,
-  archived,
 }: Props) {
   const { open: openChat } = useClientChatDrawer();
 
@@ -71,9 +63,6 @@ export function ProjectPageShell({
 
   return (
     <>
-      <GlobalNav />
-      <ClientSidebar clients={clients} prospects={prospects} archived={archived} />
-
       <div
         className="flex flex-col h-screen bg-zinc-50 dark:bg-zinc-950"
         style={{ paddingLeft: "var(--sidebar-w)", paddingTop: "var(--nav-h)" }}

@@ -1,4 +1,5 @@
 import 'server-only'
+import { cache } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import type { Client, ClientCategory, ClientStatus } from '@/lib/types'
 
@@ -36,26 +37,34 @@ export async function getClients(category: ClientCategory = 'client'): Promise<C
   return (data ?? []).map(toClient)
 }
 
-/** 1 requête pour client + prospect + archived (sidebar) — évite 3 round-trips */
-export async function getClientsAll(): Promise<{
+/** Sidebar: 1 RPC (pas de N+1 contacts), dédupliqué par React.cache dans la même requête serveur. */
+export const getClientsAll = cache(async (): Promise<{
   clients: Client[]
   prospects: Client[]
   archived: Client[]
-}> {
+}> => {
   const supabase = await createClient()
-  const { data, error } = await supabase
-    .from('clients')
-    .select('*, contacts(*)')
-    .in('category', ['client', 'prospect', 'archived'])
-    .order('created_at', { ascending: true })
+  const { data, error } = await supabase.rpc('get_clients_sidebar')
   if (error) throw new Error(error.message)
-  const all = (data ?? []).map(toClient)
+  const all: Client[] = (data ?? []).map((row: Record<string, unknown>) => ({
+    id: row.id as string,
+    name: row.name as string,
+    industry: '',
+    category: row.category as ClientCategory,
+    status: 'active' as ClientStatus,
+    contact: {
+      name: (row.primary_contact_name as string) ?? '—',
+      role: '—',
+      email: '—',
+    },
+    color: (row.color as string) ?? '#71717a',
+  }))
   return {
     clients: all.filter((c) => c.category === 'client'),
     prospects: all.filter((c) => c.category === 'prospect'),
     archived: all.filter((c) => c.category === 'archived'),
   }
-}
+})
 
 export async function getClient(id: string): Promise<Client | null> {
   const supabase = await createClient()

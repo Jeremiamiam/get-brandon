@@ -3,8 +3,6 @@
 import { useState, useTransition, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { GlobalNav } from "@/components/GlobalNav";
-import { ClientSidebar } from "@/components/ClientSidebar";
 import { DocumentViewer } from "@/components/DocumentViewer";
 import {
   DOC_TYPE_LABEL,
@@ -25,9 +23,6 @@ type Props = {
   budgetByProject: Record<string, BudgetProduct[]>
   globalDocs: Document[]
   clientId: string
-  clients: Client[]
-  prospects: Client[]
-  archived: Client[]
 }
 
 export function ClientPageShell({
@@ -36,9 +31,6 @@ export function ClientPageShell({
   budgetByProject,
   globalDocs,
   clientId,
-  clients,
-  prospects,
-  archived,
 }: Props) {
   const router = useRouter();
   const { open: openChat } = useClientChatDrawer();
@@ -117,8 +109,6 @@ export function ClientPageShell({
 
   return (
     <>
-      <GlobalNav />
-      <ClientSidebar clients={clients} prospects={prospects} archived={archived} />
       <DocumentViewer doc={viewerDoc} onClose={() => setViewerDoc(null)} />
 
       <div
@@ -407,6 +397,7 @@ function ProjectCard({
   return (
     <Link
       href={`/${clientId}/${project.id}#produits`}
+      prefetch
       className="group flex flex-col p-5 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 transition-all"
     >
       <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-100 group-hover:text-zinc-900 dark:group-hover:text-white transition-colors leading-tight mb-3">

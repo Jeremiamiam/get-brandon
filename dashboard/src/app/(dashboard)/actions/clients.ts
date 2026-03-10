@@ -99,6 +99,7 @@ export async function archiveClient(
   }
 
   revalidatePath('/')
+  revalidatePath('/', 'layout')
   return { error: null }
 }
 
@@ -126,6 +127,7 @@ export async function deleteClient(
   }
 
   revalidatePath('/')
+  revalidatePath('/', 'layout')
   return { error: null }
 }
 
@@ -153,5 +155,6 @@ export async function convertProspect(
   }
 
   revalidatePath('/')
+  revalidatePath('/', 'layout')
   return { error: null }
 }
