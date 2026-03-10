@@ -2,7 +2,6 @@
 
 import 'server-only'
 
-import { revalidatePath } from 'next/cache'
 import { createClient as createSupabaseClient } from '@/lib/supabase/server'
 import Anthropic from '@anthropic-ai/sdk'
 import type { Document } from '@/lib/types'
@@ -51,7 +50,13 @@ async function extractDocumentContent(
             },
             {
               type: 'text',
-              text: 'Extrais tout le contenu textuel de ce document. Retourne uniquement le texte extrait, sans commentaire.',
+              text: `Extrais et décris ce document en deux parties :
+
+1. TEXTE : tout le contenu textuel (paragraphes, listes, titres, etc.).
+
+2. ÉLÉMENTS VISUELS : décris les couleurs dominantes, logos ou éléments graphiques visibles, mise en page générale, typographies remarquables, et tout élément visuel pertinent (charte graphique, structure, hiérarchie visuelle).
+
+Retourne les deux parties clairement séparées, sans commentaire introductif.`,
             },
           ],
         }],
@@ -64,7 +69,7 @@ async function extractDocumentContent(
   if (extractedText) {
     await supabase
       .from('documents')
-      .update({ content: extractedText })
+      .update({ content: extractedText, extraction_status: 'done' })
       .eq('storage_path', storagePath)
       .eq('owner_id', userId)
   }
@@ -102,11 +107,6 @@ export async function createNote(params: {
     return { error: error.message }
   }
 
-  revalidatePath(`/${params.clientId}`, 'page')
-  if (params.projectId) {
-    revalidatePath(`/${params.clientId}/${params.projectId}`, 'page')
-  }
-
   return { error: null }
 }
 
@@ -139,11 +139,6 @@ export async function createLink(params: {
 
   if (error) {
     return { error: error.message }
-  }
-
-  revalidatePath(`/${params.clientId}`, 'page')
-  if (params.projectId) {
-    revalidatePath(`/${params.clientId}/${params.projectId}`, 'page')
   }
 
   return { error: null }
@@ -200,6 +195,9 @@ export async function saveDocumentRecord(params: {
     return { error: 'Not authenticated' }
   }
 
+  const isPdf = params.storagePath.toLowerCase().endsWith('.pdf')
+  const extractionStatus = isPdf ? 'processing' : null
+
   const { error } = await supabase.from('documents').insert({
     client_id: params.clientId,
     project_id: params.projectId ?? null,
@@ -207,6 +205,7 @@ export async function saveDocumentRecord(params: {
     type: params.type,
     storage_path: params.storagePath,
     content: null,
+    extraction_status: extractionStatus,
     owner_id: user.id,
   })
 
@@ -218,12 +217,14 @@ export async function saveDocumentRecord(params: {
   try {
     await extractDocumentContent(supabase, params.storagePath, '', user.id)
   } catch (extractErr) {
-    console.warn('[saveDocumentRecord] content extraction failed, skipping:', extractErr)
-  }
-
-  revalidatePath(`/${params.clientId}`, 'page')
-  if (params.projectId) {
-    revalidatePath(`/${params.clientId}/${params.projectId}`, 'page')
+    if (isPdf) {
+      console.warn('[saveDocumentRecord] content extraction failed:', extractErr)
+      await supabase
+        .from('documents')
+        .update({ extraction_status: 'failed' })
+        .eq('storage_path', params.storagePath)
+        .eq('owner_id', user.id)
+    }
   }
 
   return { error: null }
@@ -302,12 +303,6 @@ export async function deleteDocument(
     return { error: deleteError.message }
   }
 
-  // 4. Revalidate cache
-  revalidatePath(`/${doc.client_id}`, 'page')
-  if (doc.project_id) {
-    revalidatePath(`/${doc.client_id}/${doc.project_id}`, 'page')
-  }
-
   return { error: null }
 }
 
@@ -351,7 +346,27 @@ export async function pinDocument(
     return { error: error.message }
   }
 
-  revalidatePath(`/${doc.client_id}`, 'page')
+  return { error: null }
+}
+
+// ─── unpinDocument ─────────────────────────────────────────────
+export async function unpinDocument(documentId: string): Promise<{ error: string | null }> {
+  const supabase = await createSupabaseClient()
+
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  if (authError || !user) {
+    return { error: 'Not authenticated' }
+  }
+
+  const { error } = await supabase
+    .from('documents')
+    .update({ is_pinned: false, pinned_from_project: null })
+    .eq('id', documentId)
+    .eq('owner_id', user.id)
+
+  if (error) {
+    return { error: error.message }
+  }
 
   return { error: null }
 }

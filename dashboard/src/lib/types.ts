@@ -44,6 +44,8 @@ export type Document = {
   size: string;
   content?: string;    // note libre — texte collé/tapé directement, injecté dans le contexte agent
   storagePath?: string; // chemin Storage Supabase — défini uniquement pour les PDFs uploadés
+  extractionStatus?: 'processing' | 'done' | 'failed' | null; // PDF: en cours / extrait / échec
+  isPinned?: boolean; // épinglé au niveau client (contexte chat)
 };
 
 export type Conversation = {

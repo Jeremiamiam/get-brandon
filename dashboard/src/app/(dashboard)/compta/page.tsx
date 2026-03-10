@@ -1,51 +1,78 @@
-// NO "use client"
-import Link from "next/link"
-import { getClientsAll } from "@/lib/data/clients"
-import { getProjectsForClients } from "@/lib/data/projects"
-import { getBudgetProductsForProjects } from "@/lib/data/documents"
-import type { Client } from "@/lib/types"
+"use client";
 
-export default async function ComptaPage() {
-  const sidebar = await getClientsAll()
-  const clientIds = [...sidebar.clients, ...sidebar.prospects].map((c) => c.id)
-  const allProjects = await getProjectsForClients(clientIds)
-  const budgetByProject = await getBudgetProductsForProjects(allProjects.map((p) => p.id))
+import Link from "next/link";
+import {
+  useSidebarClients,
+  useSidebarProspects,
+  useStoreLoaded,
+} from "@/hooks/useStoreData";
+import { useStore } from "@/lib/store";
+import type { Client } from "@/lib/types";
 
-  const clientsAndProspects: Client[] = [...sidebar.clients, ...sidebar.prospects]
+export default function ComptaPage() {
+  const loaded = useStoreLoaded();
+  const clients = useSidebarClients();
+  const prospects = useSidebarProspects();
+  const projects = useStore((s) => s.projects);
+  const budgetProducts = useStore((s) => s.budgetProducts);
 
-  let globalTotal = 0
-  let globalPaid = 0
-  let globalPotentiel = 0
+  const clientsAndProspects: Client[] = [...clients, ...prospects];
+  const clientIds = clientsAndProspects.map((c) => c.id);
+  const allProjects = projects.filter((p) => clientIds.includes(p.clientId));
+  const budgetByProject: Record<string, { total: number; paid: number }> = {};
+  for (const p of allProjects) {
+    const products = budgetProducts.filter((bp) => bp.projectId === p.id);
+    const total = products.reduce((s, bp) => s + bp.totalAmount, 0);
+    const paid = products.reduce((s, bp) => {
+      let amt = 0;
+      if (bp.acompte?.status === "paid") amt += bp.acompte.amount ?? 0;
+      if (bp.avancement?.status === "paid") amt += bp.avancement.amount ?? 0;
+      if (bp.solde?.status === "paid") amt += bp.solde.amount ?? 0;
+      return s + amt;
+    }, 0);
+    budgetByProject[p.id] = { total, paid };
+  }
+
+  let globalTotal = 0;
+  let globalPaid = 0;
+  let globalPotentiel = 0;
 
   const rows = clientsAndProspects
     .map((client) => {
-      const projects = allProjects.filter((p) => p.clientId === client.id)
-
-      const total = projects.reduce((acc, p) => {
-        const products = budgetByProject[p.id] ?? []
-        return acc + products.reduce((s, bp) => s + bp.totalAmount, 0)
-      }, 0)
-
-      const paid = projects.reduce((acc, p) => {
-        const products = budgetByProject[p.id] ?? []
-        return acc + products.reduce((s, bp) => {
-          let amt = 0
-          if (bp.acompte?.status === 'paid') amt += bp.acompte.amount ?? 0
-          if (bp.avancement?.status === 'paid') amt += bp.avancement.amount ?? 0
-          if (bp.solde?.status === 'paid') amt += bp.solde.amount ?? 0
-          return s + amt
-        }, 0)
-      }, 0)
-
-      const potentiel = projects.reduce((acc, p) => acc + (p.potentialAmount ?? 0), 0)
-
-      globalTotal += total
-      globalPaid += paid
-      globalPotentiel += potentiel
-
-      return { client, total, paid, potentiel }
+      const projects = allProjects.filter((p) => p.clientId === client.id);
+      const total = projects.reduce(
+        (acc, p) => acc + (budgetByProject[p.id]?.total ?? 0),
+        0
+      );
+      const paid = projects.reduce(
+        (acc, p) => acc + (budgetByProject[p.id]?.paid ?? 0),
+        0
+      );
+      const potentiel = projects.reduce(
+        (acc, p) => acc + (p.potentialAmount ?? 0),
+        0
+      );
+      globalTotal += total;
+      globalPaid += paid;
+      globalPotentiel += potentiel;
+      return { client, total, paid, potentiel };
     })
-    .filter((r) => r.total > 0 || r.potentiel > 0)
+    .filter((r) => r.total > 0 || r.potentiel > 0);
+
+  if (!loaded) {
+    return (
+      <div
+        className="flex flex-col min-h-screen bg-zinc-50 dark:bg-zinc-950"
+        style={{ paddingLeft: "var(--sidebar-w)", paddingTop: "var(--nav-h)" }}
+      >
+        <div className="flex-1 flex items-center justify-center">
+          <p className="text-sm text-zinc-500 dark:text-zinc-600">
+            Chargement…
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -54,7 +81,9 @@ export default async function ComptaPage() {
         style={{ paddingLeft: "var(--sidebar-w)", paddingTop: "var(--nav-h)" }}
       >
         <header className="shrink-0 px-6 py-4 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950">
-          <h1 className="text-base font-semibold text-zinc-900 dark:text-white">Comptabilité</h1>
+          <h1 className="text-base font-semibold text-zinc-900 dark:text-white">
+            Comptabilité
+          </h1>
         </header>
 
         <div className="flex-1 overflow-y-auto p-6">
@@ -99,7 +128,7 @@ export default async function ComptaPage() {
                     {client.name[0].toUpperCase()}
                   </div>
                   <div>
-                    <span className="text-sm font-medium text-zinc-700 dark:text-zinc-200 group-hover:text-zinc-900 dark:group-hover:text-white">
+                    <span className="text-sm font-medium text-zinc-700 dark:text-zinc-200 group-hover:text-zinc-900 dark:hover:text-white">
                       {client.name}
                     </span>
                     {client.category === "prospect" && (
@@ -128,5 +157,5 @@ export default async function ComptaPage() {
         </div>
       </div>
     </>
-  )
+  );
 }

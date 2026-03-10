@@ -3,14 +3,19 @@
 import { useEffect, useState } from "react";
 import { DOC_TYPE_LABEL, DOC_TYPE_COLOR, type Document } from "@/lib/types";
 import { getDocumentSignedUrl } from "@/app/(dashboard)/actions/documents";
+import { ConfirmButton } from "@/components/ConfirmButton";
 
 // ─── Component ───────────────────────────────────────────────
 export function DocumentViewer({
   doc,
   onClose,
+  onDelete,
+  isPending,
 }: {
   doc: Document | null;
   onClose: () => void;
+  onDelete?: (docId: string) => void;
+  isPending?: boolean;
 }) {
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
 
@@ -62,9 +67,16 @@ export function DocumentViewer({
             </p>
           </div>
           <div className="flex items-center gap-2 ml-4 shrink-0">
-            <button className="px-3 py-1.5 rounded-lg bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-xs text-zinc-600 dark:text-zinc-400 hover:border-zinc-300 dark:hover:border-zinc-700 hover:text-zinc-800 dark:hover:text-zinc-200 transition-colors">
-              ↓ Exporter
-            </button>
+            {onDelete && (
+              <ConfirmButton
+                onConfirm={() => onDelete(doc.id)}
+                confirmLabel="Confirmer ?"
+                className="px-3 py-1.5 rounded-lg border border-red-200 dark:border-red-900 text-xs text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/50 disabled:opacity-40 transition-colors"
+                disabled={isPending}
+              >
+                🗑 Supprimer
+              </ConfirmButton>
+            )}
             <button
               onClick={onClose}
               className="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 flex items-center justify-center text-zinc-600 dark:text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors"

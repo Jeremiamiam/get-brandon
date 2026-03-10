@@ -16,8 +16,10 @@ import {
   getProjectDocs,
   getBudgetProducts,
   getBudgetProductsForProjects,
+  getBudgetProductsForClient,
   getProjectDocsForProjects,
 } from '@/lib/data/documents'
+import { getConversationsForContext, type ConversationForContext } from '@/lib/data/conversations'
 import type { Client, Project, Document, BudgetProduct } from '@/lib/types'
 
 // ─── Token budget constants ────────────────────────────────────
@@ -100,6 +102,16 @@ function fmtProject(
   return [lines, docsStr, productsStr].join('\n')
 }
 
+function fmtConversations(convs: ConversationForContext[]): string {
+  if (convs.length === 0) return 'Aucune conversation enregistrée.'
+  return convs
+    .map((c) => {
+      const preview = c.lastPreview ? ` — "${c.lastPreview}"` : ''
+      return `  • ${c.title} (${c.updatedAt}, ${c.messageCount} msg)${preview}`
+    })
+    .join('\n')
+}
+
 function fmtClient(client: Client, lean = false): string {
   if (lean) {
     // Agency context: name + role only
@@ -170,6 +182,7 @@ function buildClientDataSection(
   allDocs: Document[],
   allProducts: BudgetProduct[][],
   allProjectDocs: Document[][],
+  conversations: ConversationForContext[],
   truncLevel: 0 | 1 | 2 | 3
 ): string {
   const clientDocs = allDocs // already filtered to clientId
@@ -192,6 +205,8 @@ function buildClientDataSection(
           .join('\n\n')
       : 'Aucune mission.'
 
+  const convsStr = fmtConversations(conversations)
+
   return [
     '## CLIENT',
     fmtClient(client, false),
@@ -201,6 +216,9 @@ function buildClientDataSection(
     '═'.repeat(60),
     '## MISSIONS & PRODUITS',
     projectsStr,
+    '═'.repeat(60),
+    '## CONVERSATIONS RÉCENTES (historique chat)',
+    convsStr,
   ].join('\n\n')
 }
 
@@ -210,6 +228,7 @@ function buildProjectDataSection(
   clientDocs: Document[],
   projectDocs: Document[],
   products: BudgetProduct[],
+  conversations: ConversationForContext[],
   truncLevel: 0 | 1 | 2 | 3
 ): string {
   const clientDocsStr =
@@ -228,6 +247,7 @@ function buildProjectDataSection(
       : project.description
 
   const productsStr = `Produits & budget :\n${fmtProducts(products, truncLevel >= 1)}`
+  const convsStr = fmtConversations(conversations)
 
   return [
     '## CLIENT',
@@ -246,6 +266,9 @@ function buildProjectDataSection(
     '═'.repeat(60),
     '## PRODUITS & BUDGET DU PROJET',
     productsStr,
+    '═'.repeat(60),
+    '## CONVERSATIONS RÉCENTES (historique chat de ce projet)',
+    convsStr,
   ]
     .filter((s) => s !== '')
     .join('\n\n')
@@ -299,21 +322,22 @@ export async function buildAgencyContext(): Promise<string> {
 // Tous les docs + tous les projets/produits du client
 
 export async function buildClientContext(clientId: string): Promise<string> {
-  const client = await getClient(clientId)
+  const [client, projects, clientDocs, budgetByProject, conversations] = await Promise.all([
+    getClient(clientId),
+    getClientProjects(clientId),
+    getClientDocsWithPinned(clientId),
+    getBudgetProductsForClient(clientId),
+    getConversationsForContext({ clientId, limit: 10 }),
+  ])
   if (!client) return PREAMBLE + '\n\nErreur : client introuvable.'
 
-  const projects = await getClientProjects(clientId)
   const projectIds = projects.map((p) => p.id)
-  const [clientDocs, budgetByProject, docsByProject] = await Promise.all([
-    getClientDocsWithPinned(clientId),
-    getBudgetProductsForProjects(projectIds),
-    getProjectDocsForProjects(projectIds),
-  ])
+  const docsByProject = await getProjectDocsForProjects(projectIds)
 
   const allProducts: BudgetProduct[][] = projects.map((p) => budgetByProject[p.id] ?? [])
   const allProjectDocs: Document[][] = projects.map((p) => docsByProject[p.id] ?? [])
 
-  const intro = `\nTu travailles sur le compte de ${client.name}. Tu as accès à l'ensemble du contexte client : documents de marque, missions et budget.\n${'═'.repeat(60)}`
+  const intro = `\nTu travailles sur le compte de ${client.name}. Tu as accès à l'ensemble du contexte client : documents de marque, missions, budget et historique des conversations.\n${'═'.repeat(60)}`
 
   for (const truncLevel of [0, 1, 2, 3] as const) {
     const dataSection = buildClientDataSection(
@@ -322,6 +346,7 @@ export async function buildClientContext(clientId: string): Promise<string> {
       clientDocs,
       allProducts,
       allProjectDocs,
+      conversations,
       truncLevel
     )
     const full = [PREAMBLE, intro, wrapData(dataSection, 'client_data')].join('\n\n')
@@ -349,7 +374,7 @@ export async function buildClientContext(clientId: string): Promise<string> {
   }
 
   // Fallback
-  const dataSection = buildClientDataSection(client, projects, clientDocs, allProducts, allProjectDocs, 3)
+  const dataSection = buildClientDataSection(client, projects, clientDocs, allProducts, allProjectDocs, conversations, 3)
   return [PREAMBLE, intro, wrapData(dataSection, 'client_data')].join('\n\n')
 }
 
@@ -357,17 +382,18 @@ export async function buildClientContext(clientId: string): Promise<string> {
 // Docs client (marque) + docs ET produits du projet uniquement
 
 export async function buildProjectContext(clientId: string, projectId: string): Promise<string> {
-  const [client, project, clientDocs, projectDocs, products] = await Promise.all([
+  const [client, project, clientDocs, projectDocs, products, conversations] = await Promise.all([
     getClient(clientId),
     getProject(projectId),
     getClientDocsWithPinned(clientId),
     getProjectDocs(projectId),
     getBudgetProducts(projectId),
+    getConversationsForContext({ clientId, projectId, limit: 10 }),
   ])
 
   if (!client || !project) return PREAMBLE + '\n\nErreur : client ou projet introuvable.'
 
-  const intro = `\nTu travailles sur le projet "${project.name}" du client ${client.name}. Tu as accès aux documents de marque du client et aux éléments spécifiques à ce projet uniquement — pas aux autres missions.\n${'═'.repeat(60)}`
+  const intro = `\nTu travailles sur le projet "${project.name}" du client ${client.name}. Tu as accès aux documents de marque du client, aux éléments spécifiques à ce projet et à l'historique des conversations de ce projet.\n${'═'.repeat(60)}`
 
   for (const truncLevel of [0, 1, 2, 3] as const) {
     const dataSection = buildProjectDataSection(
@@ -376,6 +402,7 @@ export async function buildProjectContext(clientId: string, projectId: string): 
       clientDocs,
       projectDocs,
       products,
+      conversations,
       truncLevel
     )
     const full = [PREAMBLE, intro, wrapData(dataSection, 'project_data')].join('\n\n')
@@ -403,6 +430,6 @@ export async function buildProjectContext(clientId: string, projectId: string): 
   }
 
   // Fallback
-  const dataSection = buildProjectDataSection(client, project, clientDocs, projectDocs, products, 3)
+  const dataSection = buildProjectDataSection(client, project, clientDocs, projectDocs, products, conversations, 3)
   return [PREAMBLE, intro, wrapData(dataSection, 'project_data')].join('\n\n')
 }

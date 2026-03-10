@@ -20,6 +20,8 @@ function toDocument(row: Record<string, unknown>): Document {
     size,
     content: (row.content as string | null) ?? undefined,
     storagePath: (row.storage_path as string | null) ?? undefined,
+    extractionStatus: (row.extraction_status as Document['extractionStatus']) ?? undefined,
+    isPinned: (row.is_pinned as boolean) ?? false,
   }
 }
 
@@ -28,7 +30,7 @@ export async function getClientDocs(clientId: string): Promise<Document[]> {
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('documents')
-    .select('id, client_id, project_id, name, type, updated_at, storage_path, is_pinned')
+    .select('id, client_id, project_id, name, type, updated_at, storage_path, is_pinned, extraction_status')
     .eq('client_id', clientId)
     .is('project_id', null)
     .order('created_at', { ascending: true })
@@ -42,7 +44,7 @@ export async function getClientDocsWithPinned(clientId: string): Promise<Documen
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('documents')
-    .select('id, client_id, project_id, name, type, updated_at, content, storage_path, is_pinned')
+    .select('id, client_id, project_id, name, type, updated_at, content, storage_path, is_pinned, extraction_status')
     .eq('client_id', clientId)
     .or('project_id.is.null,is_pinned.eq.true')
     .order('created_at', { ascending: true })
@@ -54,7 +56,7 @@ export async function getProjectDocs(projectId: string): Promise<Document[]> {
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('documents')
-    .select('id, client_id, project_id, name, type, updated_at, storage_path, is_pinned')
+    .select('id, client_id, project_id, name, type, updated_at, content, storage_path, is_pinned, extraction_status')
     .eq('project_id', projectId)
     .order('created_at', { ascending: true })
   if (error) throw new Error(error.message)
@@ -69,7 +71,7 @@ export async function getProjectDocsForProjects(
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('documents')
-    .select('id, client_id, project_id, name, type, updated_at, storage_path, is_pinned')
+    .select('id, client_id, project_id, name, type, updated_at, content, storage_path, is_pinned, extraction_status')
     .in('project_id', projectIds)
     .order('created_at', { ascending: true })
   if (error) throw new Error(error.message)

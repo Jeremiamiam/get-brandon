@@ -8,7 +8,7 @@ import {
   type PaymentStage,
 } from "@/lib/types";
 import { ProductDrawer } from "@/components/ProductDrawer";
-import { createBudgetProduct, updateProject } from "@/app/(dashboard)/actions/projects";
+import { createBudgetProductAction } from "@/lib/store/actions";
 
 export function BudgetsTab({
   project,
@@ -41,15 +41,6 @@ export function BudgetsTab({
 
   const [drawerProduct, setDrawerProduct] = useState<BudgetProduct | null>(null);
 
-  // potentialAmount: local state for optimistic display, persisted on blur via Server Action
-  const [potentiel, setPotentiel] = useState<number | undefined>(project.potentialAmount);
-  const potentielStr = potentiel !== undefined ? String(potentiel) : "";
-
-  async function handlePotentielBlur() {
-    // Fire-and-forget — user doesn't need to see success; revalidatePath will update on next navigation
-    await updateProject(project.id, { potentialAmount: potentiel });
-  }
-
   function handleAddProduct() {
     const name = newName.trim();
     const amount = parseFloat(newAmount);
@@ -57,7 +48,7 @@ export function BudgetsTab({
 
     startAddTransition(async () => {
       setAddError(null);
-      const result = await createBudgetProduct({ projectId: project.id, name, totalAmount: amount });
+      const result = await createBudgetProductAction({ projectId: project.id, name, totalAmount: amount });
       if (result.error) {
         setAddError(result.error);
       } else {
@@ -82,28 +73,7 @@ export function BudgetsTab({
             <h2 className="text-base font-semibold text-zinc-900 dark:text-white">Produits</h2>
             <p className="text-sm text-zinc-500 mt-0.5">{project.name}</p>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1.5">
-              <label htmlFor="potentiel" className="text-[11px] text-zinc-500 dark:text-zinc-600 uppercase tracking-wider">
-                Potentiel
-              </label>
-              <div className="flex items-center gap-1 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg px-2.5 py-1.5 focus-within:border-zinc-400 dark:focus-within:border-zinc-500 transition-colors w-24">
-                <input
-                  id="potentiel"
-                  type="number"
-                  value={potentielStr}
-                  onChange={(e) => {
-                    const n = e.target.value === "" ? undefined : parseFloat(e.target.value);
-                    setPotentiel(n !== undefined && !isNaN(n) ? n : undefined);
-                  }}
-                  onBlur={handlePotentielBlur}
-                  placeholder="—"
-                  className="bg-transparent text-sm text-zinc-800 dark:text-zinc-200 outline-none text-right w-full"
-                />
-                <span className="text-xs text-zinc-500 dark:text-zinc-600">€</span>
-              </div>
-            </div>
-            <button
+          <button
               onClick={() => setShowForm((v) => !v)}
               className={`px-3 py-1.5 rounded-lg border text-xs transition-colors ${
                 showForm
@@ -113,7 +83,6 @@ export function BudgetsTab({
             >
               {showForm ? "✕ Annuler" : "+ Ajouter un produit"}
             </button>
-          </div>
         </div>
 
         {/* Add product form */}
@@ -127,6 +96,9 @@ export function BudgetsTab({
                 type="text"
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") { e.preventDefault(); handleAddProduct(); }
+                }}
                 placeholder="Nom de la prestation…"
                 className="flex-1 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-800 dark:text-zinc-200 placeholder-zinc-400 dark:placeholder-zinc-600 outline-none focus:border-zinc-400 dark:focus:border-zinc-500 transition-colors"
                 autoFocus
@@ -136,6 +108,9 @@ export function BudgetsTab({
                   type="number"
                   value={newAmount}
                   onChange={(e) => setNewAmount(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") { e.preventDefault(); handleAddProduct(); }
+                  }}
                   placeholder="0"
                   className="w-24 bg-transparent text-sm text-zinc-800 dark:text-zinc-200 placeholder-zinc-400 dark:placeholder-zinc-600 outline-none text-right"
                 />

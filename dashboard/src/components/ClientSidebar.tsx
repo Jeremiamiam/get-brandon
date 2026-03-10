@@ -1,10 +1,17 @@
 "use client";
 
-import { useState, useTransition, useRef, useEffect } from "react";
+import { useState, useTransition, useRef, useEffect, useLayoutEffect } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import type { Client, ClientCategory } from "@/lib/types";
-import { createClient, updateClient, archiveClient, deleteClient } from "@/app/(dashboard)/actions/clients";
+import {
+  createClientAction,
+  updateClientAction,
+  archiveClientAction,
+  unarchiveClientAction,
+  deleteClientAction,
+} from "@/lib/store/actions";
 
 const TABS: { id: ClientCategory; label: string }[] = [
   { id: "client", label: "Clients" },
@@ -22,8 +29,10 @@ export function ClientSidebar({
   archived: Client[]
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const activeId = pathname?.split("/")[1];
   const [tab, setTab] = useState<ClientCategory>("client");
+  const [search, setSearch] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [newName, setNewName] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
@@ -34,13 +43,16 @@ export function ClientSidebar({
     if (!name) return;
     setFormError(null);
     startTransition(async () => {
-      const result = await createClient({ name, category: tab === "prospect" ? "prospect" : "client" });
+      const result = await createClientAction({ name, category: tab === "prospect" ? "prospect" : "client" });
       if (result.error) {
         setFormError(result.error);
         return;
       }
       setShowForm(false);
       setNewName("");
+      if (result.clientId) {
+        router.push(`/${result.clientId}`);
+      }
     });
   }
 
@@ -49,7 +61,10 @@ export function ClientSidebar({
     prospect: prospects,
     archived: archived,
   }
-  const currentClients = clientsByTab[tab]
+  const q = search.trim().toLowerCase()
+  const currentClients = q
+    ? clientsByTab[tab].filter((c) => c.name.toLowerCase().includes(q))
+    : clientsByTab[tab]
 
   return (
     <aside
@@ -81,6 +96,8 @@ export function ClientSidebar({
           </svg>
           <input
             type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
             placeholder="Rechercher…"
             className="bg-transparent text-xs text-zinc-600 dark:text-zinc-400 placeholder-zinc-400 dark:placeholder-zinc-600 outline-none w-full"
           />
@@ -149,15 +166,31 @@ export function ClientSidebar({
 
 function ClientItem({ client, active, category }: { client: Client; active: boolean; category: ClientCategory }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [menuRect, setMenuRect] = useState<DOMRect | null>(null);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(client.name);
   const [isPending, startTransition] = useTransition();
-  const menuRef = useRef<HTMLDivElement>(null);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+
+  useLayoutEffect(() => {
+    if (menuOpen && menuButtonRef.current) {
+      setMenuRect(menuButtonRef.current.getBoundingClientRect());
+    } else {
+      setMenuRect(null);
+    }
+  }, [menuOpen]);
 
   useEffect(() => {
     if (!menuOpen) return;
     function handleClickOutside(e: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
+      const target = e.target as Node;
+      if (
+        menuButtonRef.current?.contains(target) ||
+        document.getElementById("client-menu-portal")?.contains(target)
+      )
+        return;
+      setMenuOpen(false);
     }
     document.addEventListener("click", handleClickOutside);
     return () => document.removeEventListener("click", handleClickOutside);
@@ -177,20 +210,19 @@ function ClientItem({ client, active, category }: { client: Client; active: bool
       return;
     }
     startTransition(async () => {
-      const result = await updateClient(client.id, { name });
+      const result = await updateClientAction(client.id, { name });
       if (!result.error) setIsEditing(false);
     });
   }
 
   function handleArchive() {
     setMenuOpen(false);
-    startTransition(() => void archiveClient(client.id));
+    startTransition(() => void archiveClientAction(client.id));
   }
 
   function handleDelete() {
-    if (!confirm("Supprimer définitivement ce client ?")) return;
     setMenuOpen(false);
-    startTransition(() => void deleteClient(client.id));
+    startTransition(() => void deleteClientAction(client.id));
   }
 
   if (isEditing) {
@@ -234,6 +266,7 @@ function ClientItem({ client, active, category }: { client: Client; active: bool
     >
       <Link
         href={`/${client.id}`}
+        prefetch
         className="flex items-center gap-3 flex-1 min-w-0"
       >
         <div
@@ -250,41 +283,83 @@ function ClientItem({ client, active, category }: { client: Client; active: bool
         </div>
         <span className="text-sm font-medium truncate">{client.name}</span>
       </Link>
-      <div className="relative shrink-0" ref={menuRef}>
+      <div className="relative shrink-0">
         <button
+          ref={menuButtonRef}
           onClick={(e) => { e.preventDefault(); setMenuOpen((v) => !v); }}
           className="p-1 rounded opacity-60 hover:opacity-100 transition-opacity"
           title="Menu"
         >
           <span className="text-xs">⋯</span>
         </button>
-        {menuOpen && (
-          <div className="absolute left-0 top-full mt-0.5 py-1 min-w-[160px] rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 shadow-lg z-50">
-            <button
-              onClick={() => { setMenuOpen(false); setIsEditing(true); }}
-              className="w-full px-3 py-1.5 text-left text-xs text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+        {menuOpen &&
+          menuRect &&
+          typeof document !== "undefined" &&
+          createPortal(
+            <div
+              id="client-menu-portal"
+              className="fixed py-1 min-w-[160px] rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 shadow-xl z-[9999]"
+              style={{
+                left: menuRect.left,
+                top: menuRect.bottom + 4,
+              }}
             >
-              Éditer
-            </button>
-            {category === "archived" ? (
               <button
-                onClick={handleDelete}
-                disabled={isPending}
-                className="w-full px-3 py-1.5 text-left text-xs text-red-600 dark:text-red-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-50"
+                onClick={() => { setMenuOpen(false); setIsEditing(true); }}
+                className="w-full px-3 py-1.5 text-left text-xs text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800"
               >
-                Supprimer définitivement
+                Éditer
               </button>
-            ) : (
-              <button
-                onClick={handleArchive}
-                disabled={isPending}
-                className="w-full px-3 py-1.5 text-left text-xs text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-50"
-              >
-                Archiver
-              </button>
-            )}
-          </div>
-        )}
+              {category === "archived" ? (
+                <>
+                  <button
+                    onClick={() => {
+                      setMenuOpen(false);
+                      startTransition(() => void unarchiveClientAction(client.id));
+                    }}
+                    disabled={isPending}
+                    className="w-full px-3 py-1.5 text-left text-xs text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-50"
+                  >
+                    Désarchiver
+                  </button>
+                  {confirmingDelete ? (
+                    <div className="flex items-center gap-1 px-3 py-1.5">
+                      <button
+                        onClick={handleDelete}
+                        className="text-xs text-red-600 dark:text-red-400 font-medium hover:underline"
+                      >
+                        Confirmer
+                      </button>
+                      <span className="text-zinc-400">·</span>
+                      <button
+                        onClick={() => setConfirmingDelete(false)}
+                        className="text-xs text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
+                      >
+                        Annuler
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setConfirmingDelete(true)}
+                      disabled={isPending}
+                      className="w-full px-3 py-1.5 text-left text-xs text-red-600 dark:text-red-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-50"
+                    >
+                      Supprimer définitivement
+                    </button>
+                  )}
+                </>
+              ) : (
+                <button
+                  onClick={handleArchive}
+                  disabled={isPending}
+                  className="w-full px-3 py-1.5 text-left text-xs text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-50"
+                >
+                  Archiver
+                </button>
+              )}
+            </div>,
+            document.body
+          )}
       </div>
     </div>
   );

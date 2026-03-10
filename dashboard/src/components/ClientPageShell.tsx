@@ -13,9 +13,11 @@ import {
   type BudgetProduct,
 } from "@/lib/types";
 import { useClientChatDrawer } from "@/context/ClientChatDrawer";
-import { createProject } from "@/app/(dashboard)/actions/projects";
-import { updateClient, archiveClient, deleteClient } from "@/app/(dashboard)/actions/clients";
+import { createProjectAction } from "@/lib/store/actions";
+import { updateClientAction, archiveClientAction, deleteClientAction } from "@/lib/store/actions";
 import { AddDocForm } from "@/components/AddDocForm";
+import { deleteDocument } from "@/app/(dashboard)/actions/documents";
+import { useStore } from "@/lib/store";
 
 type Props = {
   client: Client
@@ -45,6 +47,7 @@ export function ClientPageShell({
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(client.name);
   const [isPendingClient, startClientTransition] = useTransition();
+  const [isPendingDoc, startDocTransition] = useTransition();
   const headerMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -62,7 +65,7 @@ export function ClientPageShell({
 
     startMissionTransition(async () => {
       setMissionError(null);
-      const result = await createProject({ clientId, name });
+      const result = await createProjectAction({ clientId, name });
       if (result.error) {
         setMissionError(result.error);
       } else {
@@ -85,7 +88,7 @@ export function ClientPageShell({
       return;
     }
     startClientTransition(async () => {
-      const result = await updateClient(clientId, { name });
+      const result = await updateClientAction(clientId, { name });
       if (!result.error) setIsEditing(false);
     });
   }
@@ -93,23 +96,35 @@ export function ClientPageShell({
   function handleArchive() {
     setHeaderMenuOpen(false);
     startClientTransition(async () => {
-      await archiveClient(clientId);
+      await archiveClientAction(clientId);
       router.push("/");
     });
   }
 
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+
   function handleDelete() {
-    if (!confirm("Supprimer définitivement ce client ?")) return;
     setHeaderMenuOpen(false);
     startClientTransition(async () => {
-      await deleteClient(clientId);
+      await deleteClientAction(clientId);
       router.push("/");
     });
   }
 
   return (
     <>
-      <DocumentViewer doc={viewerDoc} onClose={() => setViewerDoc(null)} />
+      <DocumentViewer
+        doc={viewerDoc}
+        onClose={() => setViewerDoc(null)}
+        onDelete={viewerDoc ? (docId) => startDocTransition(async () => {
+          const err = await deleteDocument(docId);
+          if (!err.error) {
+            setViewerDoc(null);
+            useStore.getState().loadData();
+          }
+        }) : undefined}
+        isPending={isPendingDoc}
+      />
 
       <div
         className="flex flex-col min-h-screen bg-zinc-50 dark:bg-zinc-950"
@@ -194,13 +209,21 @@ export function ClientPageShell({
                     Éditer
                   </button>
                   {client.category === "archived" ? (
-                    <button
-                      onClick={handleDelete}
-                      disabled={isPendingClient}
-                      className="w-full px-3 py-2 text-left text-xs text-red-600 dark:text-red-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-50"
-                    >
-                      Supprimer définitivement
-                    </button>
+                    confirmingDelete ? (
+                      <div className="flex items-center gap-1 px-3 py-2">
+                        <button onClick={handleDelete} className="text-xs text-red-600 dark:text-red-400 font-medium hover:underline">Confirmer</button>
+                        <span className="text-zinc-400">·</span>
+                        <button onClick={() => setConfirmingDelete(false)} className="text-xs text-zinc-500 hover:text-zinc-700">Annuler</button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setConfirmingDelete(true)}
+                        disabled={isPendingClient}
+                        className="w-full px-3 py-2 text-left text-xs text-red-600 dark:text-red-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-50"
+                      >
+                        Supprimer définitivement
+                      </button>
+                    )
                   ) : (
                     <button
                       onClick={handleArchive}
@@ -262,6 +285,11 @@ export function ClientPageShell({
                     key={doc.id}
                     doc={doc}
                     onClick={() => setViewerDoc(doc)}
+                    onDelete={() => startDocTransition(async () => {
+                      const err = await deleteDocument(doc.id);
+                      if (!err.error) useStore.getState().loadData();
+                    })}
+                    isPending={isPendingDoc}
                   />
                 ))}
               </div>
@@ -307,6 +335,9 @@ export function ClientPageShell({
                       type="text"
                       value={newMissionName}
                       onChange={(e) => setNewMissionName(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") { e.preventDefault(); handleAddMission(); }
+                      }}
                       placeholder="Ex. Identité de marque"
                       className="w-full bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-800 dark:text-zinc-200 placeholder-zinc-400 dark:placeholder-zinc-600 outline-none focus:border-zinc-400 dark:focus:border-zinc-500 transition-colors"
                       autoFocus
@@ -355,9 +386,13 @@ export function ClientPageShell({
 function GlobalDocChip({
   doc,
   onClick,
+  onDelete,
+  isPending,
 }: {
   doc: Document;
   onClick: () => void;
+  onDelete: () => void;
+  isPending: boolean;
 }) {
   const icons: Record<string, string> = {
     brief: "📋",
@@ -368,20 +403,27 @@ function GlobalDocChip({
   };
 
   return (
-    <button
-      onClick={onClick}
-      className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors group text-left"
-    >
-      <span className="text-sm">{icons[doc.type] ?? "📄"}</span>
-      <div>
-        <p className="text-xs font-medium text-zinc-700 dark:text-zinc-300 group-hover:text-zinc-900 dark:group-hover:text-white transition-colors">
-          {doc.name}
-        </p>
-        <p className={`text-[10px] ${DOC_TYPE_COLOR[doc.type]}`}>
-          {DOC_TYPE_LABEL[doc.type]} · {doc.updatedAt}
-        </p>
-      </div>
-    </button>
+    <div className="group flex items-center gap-2.5 px-3 py-2 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors">
+      <button onClick={onClick} className="flex items-center gap-2.5 min-w-0 flex-1 text-left">
+        <span className="text-sm">{icons[doc.type] ?? "📄"}</span>
+        <div>
+          <p className="text-xs font-medium text-zinc-700 dark:text-zinc-300 group-hover:text-zinc-900 dark:group-hover:text-white transition-colors">
+            {doc.name}
+          </p>
+          <p className={`text-[10px] ${DOC_TYPE_COLOR[doc.type]}`}>
+            {DOC_TYPE_LABEL[doc.type]} · {doc.updatedAt}
+          </p>
+        </div>
+      </button>
+      <button
+        onClick={(e) => { e.stopPropagation(); if (confirm("Supprimer ce document ?")) onDelete(); }}
+        disabled={isPending}
+        className="p-1.5 rounded text-zinc-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+        title="Supprimer"
+      >
+        🗑
+      </button>
+    </div>
   );
 }
 

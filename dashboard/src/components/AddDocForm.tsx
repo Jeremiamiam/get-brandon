@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import type { Document } from "@/lib/types";
 import { createNote, createSignedUploadUrl, saveDocumentRecord } from "@/app/(dashboard)/actions/documents";
 import { createClient as createBrowserClient } from "@/lib/supabase/client";
+import { useStore } from "@/lib/store";
 
 export function AddDocForm({
   clientId,
@@ -70,6 +71,7 @@ export function AddDocForm({
 
       reset();
       onSuccess?.();
+      useStore.getState().loadData();
     });
   }
 
@@ -81,6 +83,9 @@ export function AddDocForm({
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") { e.preventDefault(); handleSubmit(); }
+          }}
           placeholder="Nom du document…"
           autoFocus
           className="flex-1 min-w-[160px] bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-800 dark:text-zinc-200 placeholder-zinc-400 dark:placeholder-zinc-600 outline-none focus:border-zinc-400 dark:focus:border-zinc-500 transition-colors"

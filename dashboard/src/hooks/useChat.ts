@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useRef, useCallback, useEffect, useMemo } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import type { Message } from "@/lib/types";
+import { getMessages, saveMessages } from "@/app/(dashboard)/actions/conversations";
 
 type ChatScope =
   | { contextType: "agency" }
@@ -48,27 +49,48 @@ function saveToSession(key: string | null, messages: Message[]): void {
   }
 }
 
-export function useChat(scope: ChatScope) {
-  const scopeKey = useMemo(() => getScopeKey(scope), [
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    scope.contextType,
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    "clientId" in scope ? scope.clientId : "",
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    "projectId" in scope ? scope.projectId : "",
-  ]);
+export function useChat(
+  scope: ChatScope,
+  options?: { conversationId: string | null; useConversations?: boolean }
+) {
+  const conversationId = options?.conversationId ?? null;
+  const useConversations = options?.useConversations ?? false;
+  const scopeKey = getScopeKey(scope);
 
-  const [messages, setMessages] = useState<Message[]>(() => loadFromSession(scopeKey));
+  // Source: DB si conversationId, sinon sessionStorage (agency = vide)
+  const [messages, setMessages] = useState<Message[]>(() =>
+    conversationId ? [] : (scopeKey && !useConversations ? loadFromSession(scopeKey) : [])
+  );
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [loaded, setLoaded] = useState(!conversationId);
   const abortRef = useRef<AbortController | null>(null);
 
-  // Persist messages to sessionStorage whenever they change (client/project only)
+  // Charger les messages depuis la DB quand conversationId change
+  // useConversations + pas de conv = vide (attendre création/sélection)
   useEffect(() => {
-    if (scopeKey) {
+    if (!conversationId) {
+      setLoaded(true);
+      setMessages(useConversations ? [] : (scopeKey ? loadFromSession(scopeKey) : []));
+      return;
+    }
+    setLoaded(false);
+    getMessages(conversationId).then((msgs) => {
+      setMessages(msgs);
+      setLoaded(true);
+    });
+  }, [conversationId, scopeKey, useConversations]);
+
+  // Persister : DB si conversationId, sinon sessionStorage
+  useEffect(() => {
+    if (!loaded) return;
+    if (conversationId) {
+      // Debounce save — on sauvegarde après chaque échange, pas à chaque keystroke
+      // On ne sauvegarde pas ici en continu pour éviter trop d'appels
+    } else if (scopeKey) {
       saveToSession(scopeKey, messages);
     }
-  }, [scopeKey, messages]);
+  }, [conversationId, scopeKey, messages, loaded]);
 
   const sendMessage = useCallback(
     async (text?: string) => {
@@ -123,20 +145,35 @@ export function useChat(scope: ChatScope) {
             )
           );
         }
+
+        // Persister en DB si conversation liée
+        if (conversationId) {
+          const finalMessages = [
+            ...updatedMessages.map((m) => ({ role: m.role, content: m.content })),
+            { role: "assistant" as const, content: fullContent },
+          ];
+          await saveMessages(conversationId, finalMessages);
+        }
       } catch (err: unknown) {
         if (err instanceof Error && err.name === "AbortError") return;
+        const errorContent = "Une erreur est survenue. Réessaie.";
         setMessages((prev) =>
           prev.map((m) =>
-            m.id === assistantId
-              ? { ...m, content: "Une erreur est survenue. Réessaie." }
-              : m
+            m.id === assistantId ? { ...m, content: errorContent } : m
           )
         );
+        if (conversationId) {
+          const finalMessages = [
+            ...updatedMessages.map((m) => ({ role: m.role, content: m.content })),
+            { role: "assistant" as const, content: errorContent },
+          ];
+          await saveMessages(conversationId, finalMessages);
+        }
       } finally {
         setIsLoading(false);
       }
     },
-    [input, isLoading, messages, scope]
+    [input, isLoading, messages, scope, conversationId]
   );
 
   const handleKeyDown = useCallback(

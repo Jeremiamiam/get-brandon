@@ -1,9 +1,15 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useTransition } from "react";
 import { useChat } from "@/hooks/useChat";
 import { type Project, type Message, type Document } from "@/lib/types";
 import { MarkdownContent } from "@/components/MarkdownContent";
+import { ConfirmButton } from "@/components/ConfirmButton";
+import {
+  getConversations,
+  createConversation,
+  deleteConversation,
+} from "@/app/(dashboard)/actions/conversations";
 
 export function ChatTab({
   project,
@@ -19,14 +25,22 @@ export function ChatTab({
   projectDocs: Document[];
 }) {
   const scope = { contextType: "project" as const, clientId, projectId: project.id };
-  const { messages, input, setInput, isLoading, sendMessage, handleKeyDown } = useChat(scope);
+  const [conversations, setConversations] = useState<{ id: string; title: string; date: string; messageCount: number }[]>([]);
+  const [activeConvId, setActiveConvId] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+
+  const { messages, input, setInput, isLoading, sendMessage, handleKeyDown } = useChat(scope, {
+    conversationId: activeConvId,
+    useConversations: true,
+  });
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  const conversations: { id: string; title: string; date: string; messageCount: number }[] = [];
   const allDocs = [...clientDocs, ...projectDocs];
-  const [activeConvId, setActiveConvId] = useState(
-    conversations[conversations.length - 1]?.id ?? null
-  );
+
+  // Charger les conversations
+  useEffect(() => {
+    getConversations({ clientId, projectId: project.id }).then(setConversations);
+  }, [clientId, project.id, activeConvId]); // refresh quand on change de conv (après create/delete)
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -38,7 +52,10 @@ export function ChatTab({
       <div className="flex flex-col flex-1 min-w-0">
         {/* Messages */}
         <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
-          {messages.length === 0 && (
+          {messages.length === 0 && !activeConvId && (
+            <EmptyState projectName={project.name} clientColor={clientColor} noConversation />
+          )}
+          {messages.length === 0 && activeConvId && (
             <EmptyState projectName={project.name} clientColor={clientColor} />
           )}
           {messages.map((msg) => (
@@ -54,9 +71,9 @@ export function ChatTab({
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder={`Message — ${project.name}…`}
+              placeholder={activeConvId ? `Message — ${project.name}…` : "Crée ou sélectionne une conversation"}
               rows={1}
-              disabled={isLoading}
+              disabled={isLoading || !activeConvId}
               className="flex-1 bg-transparent text-sm text-zinc-800 dark:text-zinc-200 placeholder-zinc-400 dark:placeholder-zinc-600 outline-none resize-none leading-relaxed disabled:opacity-50"
               style={{ minHeight: "24px", maxHeight: "160px" }}
               onInput={(e) => {
@@ -67,7 +84,7 @@ export function ChatTab({
             />
             <button
               onClick={() => sendMessage()}
-              disabled={!input.trim() || isLoading}
+              disabled={!input.trim() || isLoading || !activeConvId}
               className="shrink-0 w-8 h-8 rounded-lg disabled:bg-zinc-200 disabled:text-zinc-400 dark:disabled:bg-zinc-800 dark:disabled:text-zinc-600 flex items-center justify-center transition-colors"
               style={{ background: input.trim() && !isLoading ? clientColor : undefined }}
             >
@@ -119,39 +136,75 @@ export function ChatTab({
         </div>
 
         {/* Conversations history */}
-        <div className="p-4 border-b border-zinc-200 dark:border-zinc-800">
-          <h3 className="text-xs font-semibold text-zinc-500 uppercase tracking-widest">
+        <div className="p-4 border-b border-zinc-200 dark:border-zinc-800 flex-1 min-h-0 flex flex-col">
+          <h3 className="text-xs font-semibold text-zinc-500 uppercase tracking-widest mb-2">
             Historique
           </h3>
-        </div>
-        <div className="p-2 flex-1">
-          {conversations.length === 0 ? (
-            <p className="text-xs text-zinc-500 dark:text-zinc-600 p-3">Aucune conversation.</p>
-          ) : (
-            conversations.map((conv) => (
-              <button
-                key={conv.id}
-                onClick={() => setActiveConvId(conv.id)}
-                className={`w-full text-left px-3 py-2.5 rounded-lg mb-0.5 transition-colors ${
-                  activeConvId === conv.id
-                    ? "bg-zinc-200 text-zinc-900 dark:bg-zinc-800 dark:text-white"
-                    : "text-zinc-600 hover:text-zinc-800 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:text-zinc-200 dark:hover:bg-zinc-900"
-                }`}
-              >
-                <div className="text-xs font-medium leading-snug truncate">{conv.title}</div>
-                <div className="flex items-center gap-2 mt-1">
-                  <span className="text-[11px] text-zinc-500 dark:text-zinc-600">{conv.date}</span>
-                  <span className="text-[11px] text-zinc-400 dark:text-zinc-700">·</span>
-                  <span className="text-[11px] text-zinc-500 dark:text-zinc-600">{conv.messageCount} msg</span>
+          <div className="flex-1 overflow-y-auto min-h-0">
+            {conversations.length === 0 ? (
+              <p className="text-xs text-zinc-500 dark:text-zinc-600 p-3">Aucune conversation.</p>
+            ) : (
+              conversations.map((conv) => (
+                <div
+                  key={conv.id}
+                  className={`group flex items-center gap-1 rounded-lg mb-0.5 ${
+                    activeConvId === conv.id
+                      ? "bg-zinc-200 dark:bg-zinc-800"
+                      : "hover:bg-zinc-100 dark:hover:bg-zinc-900"
+                  }`}
+                >
+                  <button
+                    onClick={() => setActiveConvId(conv.id)}
+                    className={`flex-1 min-w-0 text-left px-3 py-2.5 transition-colors ${
+                      activeConvId === conv.id
+                        ? "text-zinc-900 dark:text-white"
+                        : "text-zinc-600 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200"
+                    }`}
+                  >
+                    <div className="text-xs font-medium leading-snug truncate">{conv.title}</div>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-[11px] text-zinc-500 dark:text-zinc-600">{conv.date}</span>
+                      <span className="text-[11px] text-zinc-400 dark:text-zinc-700">·</span>
+                      <span className="text-[11px] text-zinc-500 dark:text-zinc-600">{conv.messageCount} msg</span>
+                    </div>
+                  </button>
+                  <ConfirmButton
+                    onConfirm={() => startTransition(async () => {
+                      const err = await deleteConversation(conv.id);
+                      if (!err.error) {
+                        if (activeConvId === conv.id) setActiveConvId(null);
+                        const fresh = await getConversations({ clientId, projectId: project.id });
+                        setConversations(fresh);
+                      }
+                    })}
+                    confirmLabel="Supprimer ?"
+                    className="p-1.5 rounded opacity-0 group-hover:opacity-100 hover:opacity-100 text-zinc-500 hover:text-red-600 dark:hover:text-red-400 shrink-0 transition-opacity"
+                    disabled={isPending}
+                  >
+                    🗑
+                  </ConfirmButton>
                 </div>
-              </button>
-            ))
-          )}
+              ))
+            )}
+          </div>
         </div>
 
-        {/* New conversation */}
-        <div className="p-3 border-t border-zinc-200 dark:border-zinc-800">
-          <button className="w-full px-3 py-2 rounded-lg border border-dashed border-zinc-200 dark:border-zinc-800 text-xs text-zinc-500 dark:text-zinc-600 hover:border-zinc-300 dark:hover:border-zinc-700 hover:text-zinc-700 dark:hover:text-zinc-400 transition-colors">
+        {/* New conversation — bas de la sidebar */}
+        <div className="p-3 border-t border-zinc-200 dark:border-zinc-800 shrink-0">
+          <button
+            onClick={() =>
+              startTransition(async () => {
+                const res = await createConversation({ clientId, projectId: project.id });
+                if (!("error" in res)) {
+                  setActiveConvId(res.id);
+                  const fresh = await getConversations({ clientId, projectId: project.id });
+                  setConversations(fresh);
+                }
+              })
+            }
+            disabled={isPending}
+            className="w-full px-3 py-2 rounded-lg border border-dashed border-zinc-200 dark:border-zinc-800 text-xs text-zinc-500 dark:text-zinc-600 hover:border-zinc-300 dark:hover:border-zinc-700 hover:text-zinc-700 dark:hover:text-zinc-400 transition-colors disabled:opacity-50"
+          >
             + Nouvelle conversation
           </button>
         </div>
@@ -172,7 +225,15 @@ const docIcons: Record<string, string> = {
 
 // ─── Sub-components ───────────────────────────────────────────
 
-function EmptyState({ projectName, clientColor }: { projectName: string; clientColor: string }) {
+function EmptyState({
+  projectName,
+  clientColor,
+  noConversation,
+}: {
+  projectName: string;
+  clientColor: string;
+  noConversation?: boolean;
+}) {
   return (
     <div className="flex flex-col items-center justify-center py-12 text-center">
       <div
@@ -183,7 +244,9 @@ function EmptyState({ projectName, clientColor }: { projectName: string; clientC
       </div>
       <p className="text-sm font-medium text-zinc-600 dark:text-zinc-400">Brandon — {projectName}</p>
       <p className="text-xs text-zinc-500 dark:text-zinc-600 mt-1">
-        Contexte isolé · docs de marque + ce projet uniquement
+        {noConversation
+          ? "Clique sur « + Nouvelle conversation » en bas de la sidebar pour commencer"
+          : "Contexte isolé · docs de marque + ce projet uniquement"}
       </p>
     </div>
   );

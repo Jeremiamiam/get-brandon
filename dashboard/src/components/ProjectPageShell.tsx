@@ -1,20 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useTransition } from "react";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { ChatTab } from "@/components/tabs/ChatTab";
 import { DocumentsTab } from "@/components/tabs/DocumentsTab";
 import { BudgetsTab } from "@/components/tabs/BudgetsTab";
-import {
-  PROJECT_TYPE_LABEL,
-  PROJECT_STATUS_CONFIG,
-  type Client,
-  type Project,
-  type Document,
-  type BudgetProduct,
-} from "@/lib/types";
-import { useClientChatDrawer } from "@/context/ClientChatDrawer";
+import { type Client, type Project, type Document, type BudgetProduct } from "@/lib/types";
+import { updateProjectAction } from "@/lib/store/actions";
 
 type Tab = "produits" | "chat" | "documents";
 
@@ -43,7 +36,19 @@ export function ProjectPageShell({
   clientId,
   projectId,
 }: Props) {
-  const { open: openChat } = useClientChatDrawer();
+  const [tab, setTab] = useState<Tab>("produits");
+  const [potentiel, setPotentiel] = useState<number | undefined>(propProject?.potentialAmount);
+  const [isEditingPotentiel, setIsEditingPotentiel] = useState(false);
+  const [isPending, startTransition] = useTransition();
+
+  useEffect(() => {
+    const hash = typeof window !== "undefined" ? window.location.hash.slice(1) : "";
+    if (hash === "produits" || hash === "budgets") setTab("produits");
+  }, []);
+
+  useEffect(() => {
+    if (propProject) setPotentiel(propProject.potentialAmount);
+  }, [propProject?.potentialAmount]);
 
   // If project is null (invalid UUID in URL) → redirect to client page
   if (!propProject) {
@@ -52,14 +57,12 @@ export function ProjectPageShell({
 
   const project = propProject
 
-  const [tab, setTab] = useState<Tab>("produits");
-
-  useEffect(() => {
-    const hash = typeof window !== "undefined" ? window.location.hash.slice(1) : "";
-    if (hash === "produits" || hash === "budgets") setTab("produits");
-  }, []);
-
-  const statusCfg = PROJECT_STATUS_CONFIG[project.status];
+  function handlePotentielSave() {
+    setIsEditingPotentiel(false);
+    startTransition(async () => {
+      await updateProjectAction(project.id, { potentialAmount: potentiel });
+    });
+  }
 
   return (
     <>
@@ -94,36 +97,44 @@ export function ProjectPageShell({
             </h1>
           </div>
 
-          {/* Right info */}
+          {/* Potentiel (mission) */}
           <div className="flex items-center gap-5 shrink-0">
-            <button
-              onClick={openChat}
-              className="p-2 rounded-lg text-zinc-500 hover:text-zinc-700 hover:bg-zinc-100 dark:hover:text-zinc-200 dark:hover:bg-zinc-900 transition-colors"
-              title="Chat client"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-              </svg>
-            </button>
-            <div className="flex items-center gap-2">
-              <span className={`w-2 h-2 rounded-full ${statusCfg.dot}`} />
-              <span className="text-sm font-medium text-zinc-600 dark:text-zinc-400">{statusCfg.label}</span>
+            <div className="flex items-center gap-1.5">
+              <label className="text-[11px] text-zinc-500 dark:text-zinc-600 uppercase tracking-wider">
+                Potentiel
+              </label>
+              {isEditingPotentiel ? (
+                <div className="flex items-center gap-1 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg px-2.5 py-1.5 focus-within:border-zinc-400 dark:focus-within:border-zinc-500 w-24">
+                  <input
+                    type="number"
+                    value={potentiel ?? ""}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setPotentiel(v === "" ? undefined : parseFloat(v) || undefined);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handlePotentielSave();
+                      if (e.key === "Escape") {
+                        setIsEditingPotentiel(false);
+                        setPotentiel(project.potentialAmount);
+                      }
+                    }}
+                    autoFocus
+                    className="bg-transparent text-sm text-zinc-800 dark:text-zinc-200 outline-none text-right w-full"
+                  />
+                  <span className="text-xs text-zinc-500 dark:text-zinc-600">€</span>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setIsEditingPotentiel(true)}
+                  className="text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white transition-colors"
+                >
+                  {potentiel != null && !isNaN(potentiel)
+                    ? `${potentiel.toLocaleString("fr-FR")} €`
+                    : "—"}
+                </button>
+              )}
             </div>
-            <div className="text-right hidden sm:block">
-              <p className="text-xs text-zinc-500 dark:text-zinc-600">Type</p>
-              <p className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                {PROJECT_TYPE_LABEL[project.type]}
-              </p>
-            </div>
-            <div className="text-right">
-              <p className="text-xs text-zinc-500 dark:text-zinc-600">Avancement</p>
-              <p className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                {project.progress}/{project.totalPhases} phases
-              </p>
-            </div>
-            <button className="px-3 py-1.5 rounded-lg bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-xs text-zinc-600 dark:text-zinc-400 hover:border-zinc-300 dark:hover:border-zinc-700 hover:text-zinc-800 dark:hover:text-zinc-200 transition-colors">
-              ··· Options
-            </button>
           </div>
         </header>
 
