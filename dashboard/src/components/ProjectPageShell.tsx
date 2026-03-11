@@ -6,9 +6,11 @@ import { DocumentsTab } from "@/components/tabs/DocumentsTab";
 import { BudgetsTab } from "@/components/tabs/BudgetsTab";
 import { ProductDrawer } from "@/components/ProductDrawer";
 import { type Client, type Project, type Document, type BudgetProduct } from "@/lib/types";
-import { updateProjectAction } from "@/lib/store/actions";
+import { updateProjectAction, deleteProjectAction } from "@/lib/store/actions";
 import { ClientBreadcrumbNav } from "@/components/ClientBreadcrumbNav";
+import { EditMenu } from "@/components/EditMenu";
 import { projectHasLockedPotentiel } from "@/lib/budget-utils";
+import { useStore } from "@/lib/store";
 
 type Props = {
   client: Client
@@ -71,6 +73,15 @@ export function ProjectPageShell({
     });
   }
 
+  const navigateTo = useStore((s) => s.navigateTo);
+
+  function handleDeleteProject() {
+    startTransition(async () => {
+      const result = await deleteProjectAction(project.id);
+      if (!result.error) navigateTo(clientId);
+    });
+  }
+
   return (
     <>
       <div
@@ -83,6 +94,37 @@ export function ProjectPageShell({
           clientId={clientId}
           rightSlot={
             <div className="flex items-center gap-5">
+              {/* Éditer projet — titre déjà dans le breadcrumb à gauche */}
+              <div className="flex items-center gap-2">
+                {isEditingName ? (
+                  <div className="flex items-center gap-1 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg px-2.5 py-1.5 focus-within:border-zinc-400 dark:focus-within:border-zinc-500">
+                    <input
+                      type="text"
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") handleNameSave();
+                        if (e.key === "Escape") {
+                          setIsEditingName(false);
+                          setEditName(project.name);
+                        }
+                      }}
+                      autoFocus
+                      placeholder="Nom du projet"
+                      className="bg-transparent text-sm text-zinc-800 dark:text-zinc-200 outline-none min-w-[120px]"
+                    />
+                    <button onClick={handleNameSave} className="text-xs text-emerald-600 hover:text-emerald-500">OK</button>
+                    <button onClick={() => { setIsEditingName(false); setEditName(project.name); }} className="text-xs text-zinc-400 hover:text-zinc-600">✕</button>
+                  </div>
+                ) : (
+                  <EditMenu
+                    onRename={() => setIsEditingName(true)}
+                    onDelete={handleDeleteProject}
+                    confirmDeleteLabel="Supprimer ce projet ? Les produits et documents seront supprimés."
+                    disabled={isPending}
+                  />
+                )}
+              </div>
               <div className="flex items-center gap-1.5">
                 <label className="text-[11px] text-zinc-500 dark:text-zinc-600 uppercase tracking-wider">
                   Potentiel

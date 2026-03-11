@@ -1,6 +1,13 @@
 import Anthropic from "@anthropic-ai/sdk";
+import type { ContentBlock, ToolUseBlock } from "@anthropic-ai/sdk/resources/messages/messages";
 import { buildAgencyContext, buildClientContext, buildProjectContext } from "@/lib/context-builders";
 import { createClient as createSupabaseClient } from "@/lib/supabase/server";
+import {
+  executeCreateClient,
+  executeCreateProject,
+  executeCreateProduct,
+  getToolResultMessage,
+} from "@/lib/chat-tools";
 
 export const runtime = "nodejs";
 
@@ -17,9 +24,187 @@ const MODEL_BY_SCOPE: Record<"agency" | "client" | "project", string> = {
   project: "claude-sonnet-4-5",
 };
 
+const AGENCY_TOOLS = [
+  {
+    name: "create_client",
+    description:
+      "Crée un nouveau client ou prospect dans Yam. Utilise quand l'utilisateur demande d'ajouter un client.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        name: { type: "string", description: "Nom du client ou prospect" },
+        industry: { type: "string", description: "Secteur d'activité (optionnel)" },
+        category: {
+          type: "string",
+          enum: ["client", "prospect"],
+          description: "client ou prospect",
+        },
+      },
+      required: ["name"],
+    },
+  },
+  {
+    name: "create_project",
+    description:
+      "Crée un nouveau projet pour un client existant. Nécessite l'ID du client (UUID).",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        clientId: { type: "string", description: "UUID du client" },
+        name: { type: "string", description: "Nom du projet" },
+        potentialAmount: {
+          type: "number",
+          description: "Montant potentiel en € (optionnel)",
+        },
+      },
+      required: ["clientId", "name"],
+    },
+  },
+  {
+    name: "create_product",
+    description:
+      "Crée un produit/prestation pour un projet. Ajoute le montant du devis si connu.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        projectId: { type: "string", description: "UUID du projet" },
+        name: { type: "string", description: "Nom de la prestation" },
+        devisAmount: {
+          type: "number",
+          description: "Montant du devis en € (optionnel)",
+        },
+      },
+      required: ["projectId", "name"],
+    },
+  },
+];
+
+function isToolUseBlock(block: ContentBlock): block is ToolUseBlock {
+  return block.type === "tool_use";
+}
+
+function getToolLabel(block: ToolUseBlock, input: Record<string, unknown>): string {
+  if (block.name === "create_client") return `client « ${String(input.name ?? "?")} »`;
+  if (block.name === "create_project") return `projet « ${String(input.name ?? "?")} »`;
+  if (block.name === "create_product") {
+    const amt = input.devisAmount != null ? ` (${Number(input.devisAmount).toLocaleString("fr-FR")} €)` : "";
+    return `produit « ${String(input.name ?? "?")} »${amt}`;
+  }
+  return block.name;
+}
+
+async function* runAgencyChatWithTools(
+  anthropic: Anthropic,
+  model: string,
+  systemPrompt: string,
+  messages: Array<{ role: "user" | "assistant"; content: string }>,
+  supabase: Awaited<ReturnType<typeof createSupabaseClient>>,
+  userId: string
+): AsyncGenerator<{ type: "status" | "text"; content: string }, void, unknown> {
+  let toolCallsCount = 0;
+  type ApiMessage =
+    | { role: "user"; content: string }
+    | { role: "user"; content: Array<{ type: "tool_result"; tool_use_id: string; content: string }> }
+    | { role: "assistant"; content: string | Array<{ type: "text"; text: string } | { type: "tool_use"; id: string; name: string; input: unknown }> };
+  const apiMessages: ApiMessage[] = messages.map((m) =>
+    m.role === "user"
+      ? { role: "user" as const, content: m.content }
+      : { role: "assistant" as const, content: m.content }
+  );
+
+  let lastMessage: Awaited<ReturnType<typeof anthropic.messages.create>>;
+
+  while (true) {
+    lastMessage = await anthropic.messages.create({
+      model,
+      max_tokens: 4096,
+      system: systemPrompt,
+      messages: apiMessages,
+      tools: AGENCY_TOOLS,
+      stream: false,
+    });
+
+    if (lastMessage.stop_reason !== "tool_use") {
+      const text = lastMessage.content
+        .filter((b) => b.type === "text")
+        .map((b) => ("text" in b ? b.text : ""))
+        .join("");
+      yield { type: "text" as const, content: text };
+      return;
+    }
+
+    const toolUses = lastMessage.content.filter(isToolUseBlock);
+    const toolResults: Array<{ type: "tool_result"; tool_use_id: string; content: string }> = [];
+
+    for (const block of toolUses) {
+      const input = block.input as Record<string, unknown>;
+      const label = getToolLabel(block, input);
+
+      yield { type: "status" as const, content: `→ Création du ${label}…\n` };
+
+      let result: string;
+      try {
+        if (block.name === "create_client") {
+          const r = await executeCreateClient(supabase, userId, {
+            name: String(input.name ?? ""),
+            industry: input.industry ? String(input.industry) : undefined,
+            category: input.category === "prospect" ? "prospect" : "client",
+          });
+          result = getToolResultMessage(r);
+        } else if (block.name === "create_project") {
+          const r = await executeCreateProject(supabase, userId, {
+            clientId: String(input.clientId ?? ""),
+            name: String(input.name ?? ""),
+            potentialAmount: input.potentialAmount != null ? Number(input.potentialAmount) : undefined,
+          });
+          result = getToolResultMessage(r);
+        } else if (block.name === "create_product") {
+          const r = await executeCreateProduct(supabase, userId, {
+            projectId: String(input.projectId ?? ""),
+            name: String(input.name ?? ""),
+            devisAmount: input.devisAmount != null ? Number(input.devisAmount) : undefined,
+          });
+          result = getToolResultMessage(r);
+        } else {
+          result = `Outil inconnu : ${block.name}`;
+        }
+      } catch (err) {
+        result = `Erreur : ${err instanceof Error ? err.message : "Erreur inconnue"}`;
+      }
+
+      toolCallsCount++;
+      toolResults.push({
+        type: "tool_result",
+        tool_use_id: block.id,
+        content: result,
+      });
+
+      yield { type: "status" as const, content: `✓ ${result}\n\n` };
+    }
+
+    const assistantContent = lastMessage.content
+      .filter((b) => b.type === "text" || b.type === "tool_use")
+      .map((b) => {
+        if (b.type === "text") return { type: "text" as const, text: "text" in b ? b.text : "" };
+        if (b.type === "tool_use")
+          return { type: "tool_use" as const, id: b.id, name: b.name, input: b.input };
+        return null;
+      })
+      .filter(Boolean) as Array<{ type: "text"; text: string } | { type: "tool_use"; id: string; name: string; input: unknown }>;
+
+    apiMessages.push({
+      role: "assistant",
+      content: assistantContent,
+    });
+    apiMessages.push({
+      role: "user",
+      content: toolResults,
+    });
+  }
+}
+
 export async function POST(req: Request) {
   try {
-    // Auth gate — SEC-3 pattern: getUser() validates JWT server-side
     const supabase = await createSupabaseClient();
     const {
       data: { user },
@@ -31,7 +216,6 @@ export async function POST(req: Request) {
 
     const { messages, contextType, clientId, projectId }: ChatRequest = await req.json();
 
-    // Build the system prompt based on scope
     let systemPrompt: string;
     if (contextType === "agency") {
       systemPrompt = await buildAgencyContext();
@@ -43,7 +227,6 @@ export async function POST(req: Request) {
       return new Response("Contexte invalide", { status: 400 });
     }
 
-    // Per-scope model selection
     const model = MODEL_BY_SCOPE[contextType];
 
     if (!process.env.ANTHROPIC_API_KEY) {
@@ -58,7 +241,43 @@ export async function POST(req: Request) {
       apiKey: process.env.ANTHROPIC_API_KEY,
     });
 
-    // Stream the response
+    // Agency: tool use + boucle multi-tours, stream des actions en cours
+    if (contextType === "agency") {
+      const gen = runAgencyChatWithTools(
+        anthropic,
+        model,
+        systemPrompt,
+        messages,
+        supabase,
+        user.id
+      );
+
+      const readable = new ReadableStream({
+        async start(controller) {
+          try {
+            for await (const chunk of gen) {
+              if (chunk.type === "status" || chunk.type === "text") {
+                controller.enqueue(new TextEncoder().encode(chunk.content));
+              }
+            }
+          } catch (err) {
+            controller.error(err);
+          } finally {
+            controller.close();
+          }
+        },
+      });
+
+      return new Response(readable, {
+        headers: {
+          "Content-Type": "text/plain; charset=utf-8",
+          "Cache-Control": "no-cache",
+          "X-Accel-Buffering": "no",
+        },
+      });
+    }
+
+    // Client / Project: streaming classique sans outils
     const stream = anthropic.messages.stream({
       model,
       max_tokens: 4096,
@@ -77,7 +296,6 @@ export async function POST(req: Request) {
               controller.enqueue(new TextEncoder().encode(event.delta.text));
             }
           }
-          // Log token usage after the for-await loop completes
           const finalMsg = await stream.finalMessage();
           console.log(
             `[chat] contextType=${contextType} input_tokens=${finalMsg.usage.input_tokens} output_tokens=${finalMsg.usage.output_tokens}`

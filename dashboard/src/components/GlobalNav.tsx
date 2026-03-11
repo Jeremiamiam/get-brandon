@@ -1,27 +1,14 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import Link from "next/link";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
-import { useTheme, type ThemePreference } from "@/context/ThemeContext";
 import { logout } from "@/app/login/actions";
-import { useSidebar } from "@/context/Sidebar";
+import { useStore } from "@/lib/store";
 
 export function GlobalNav() {
-  const pathname = usePathname();
-  const { preference, resolved, setTheme } = useTheme();
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const onOutside = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener("click", onOutside);
-    return () => document.removeEventListener("click", onOutside);
-  }, []);
-  const { toggle } = useSidebar();
+  const toggle = useStore((s) => s.toggleSidebar);
+  const currentView = useStore((s) => s.currentView);
+  const navigateToCompta = useStore((s) => s.navigateToCompta);
+  const navigateHome = useStore((s) => s.navigateHome);
 
   return (
     <>
@@ -40,8 +27,8 @@ export function GlobalNav() {
         </button>
 
         {/* Brand — desktop: fixed sidebar width / mobile: flex-1 */}
-        <Link
-          href="/"
+        <button
+          onClick={navigateHome}
           className="hidden md:flex items-center gap-2 select-none shrink-0 hover:opacity-90 transition-opacity cursor-pointer py-2 px-2"
           style={{ width: "var(--sidebar-w)" }}
           title="Accueil"
@@ -53,9 +40,9 @@ export function GlobalNav() {
             height={53}
             className="h-10 w-auto invert dark:invert-0"
           />
-        </Link>
-        <Link
-          href="/"
+        </button>
+        <button
+          onClick={navigateHome}
           className="md:hidden flex items-center gap-2 select-none flex-1 hover:opacity-90 transition-opacity cursor-pointer py-2 px-2"
           title="Accueil"
         >
@@ -66,45 +53,23 @@ export function GlobalNav() {
             height={53}
             className="h-10 w-auto invert dark:invert-0"
           />
-        </Link>
+        </button>
 
-        {/* Nav items — hidden on mobile */}
-        <nav className="hidden md:flex items-center gap-1 flex-1">
-          <NavLink href="/" label="Clients" active={pathname !== "/compta"} />
-          <NavLink href="/compta" label="Comptabilité" active={pathname === "/compta"} />
-        </nav>
+        {/* Spacer */}
+        <div className="hidden md:flex flex-1" />
 
         {/* Right */}
         <div className="flex items-center gap-2 sm:gap-3">
-          <div className="relative" ref={ref}>
-            <button
-              onClick={() => setOpen((o) => !o)}
-              className="w-7 h-7 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
-              title="Thème"
-              aria-expanded={open}
-            >
-              <span className="text-xs">
-                {resolved === "dark" ? "☽" : "☀"}
-              </span>
-            </button>
-            {open && (
-              <div className="absolute right-0 top-full mt-1 py-1 min-w-[140px] rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 shadow-lg z-50">
-                {(["light", "dark", "system"] as const).map((p) => (
-                  <ThemeOption
-                    key={p}
-                    value={p}
-                    label={p === "system" ? "Système" : p === "dark" ? "Sombre" : "Clair"}
-                    icon={p === "system" ? "🖥" : p === "dark" ? "☽" : "☀"}
-                    active={preference === p}
-                    onClick={() => {
-                      setTheme(p);
-                      setOpen(false);
-                    }}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
+          <button
+            onClick={navigateToCompta}
+            className={`px-3 py-1.5 rounded-md text-sm transition-colors cursor-pointer ${
+              currentView === "compta"
+                ? "text-zinc-900 bg-zinc-200 dark:text-white dark:bg-zinc-800"
+                : "text-zinc-500 hover:text-zinc-700 hover:bg-zinc-100 dark:hover:text-zinc-300 dark:hover:bg-zinc-900"
+            }`}
+          >
+            Comptabilité
+          </button>
           <form action={logout}>
             <button
               type="submit"
@@ -117,57 +82,5 @@ export function GlobalNav() {
         </div>
       </header>
     </>
-  );
-}
-
-function ThemeOption({
-  value,
-  label,
-  icon,
-  active,
-  onClick,
-}: {
-  value: ThemePreference;
-  label: string;
-  icon: string;
-  active: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`w-full px-3 py-2 text-left text-sm flex items-center gap-2 transition-colors ${
-        active
-          ? "text-zinc-900 dark:text-white bg-zinc-100 dark:bg-zinc-800"
-          : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
-      }`}
-    >
-      <span className="text-base">{icon}</span>
-      {label}
-    </button>
-  );
-}
-
-function NavLink({
-  href,
-  label,
-  active,
-}: {
-  href: string;
-  label: string;
-  active?: boolean;
-}) {
-  return (
-    <Link
-      href={href}
-      className={`px-3 py-1.5 rounded-md text-sm transition-colors ${
-        active
-          ? "text-zinc-900 bg-zinc-200 dark:text-white dark:bg-zinc-800"
-          : "text-zinc-500 hover:text-zinc-700 hover:bg-zinc-100 dark:hover:text-zinc-300 dark:hover:bg-zinc-900"
-      }`}
-    >
-      {label}
-    </Link>
   );
 }

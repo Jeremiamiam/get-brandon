@@ -16,7 +16,6 @@ import { deleteDocument } from "@/app/(dashboard)/actions/documents";
 import { AddDocForm } from "@/components/AddDocForm";
 import { DeleteMenu } from "@/components/DeleteMenu";
 import { useStore } from "@/lib/store";
-import { useSidebar } from "@/context/Sidebar";
 
 type Props = {
   clientId: string;
@@ -81,7 +80,8 @@ export function ClientDetailSidebar({ clientId }: Props) {
     });
   }
 
-  const { open, close } = useSidebar();
+  const open = useStore((s) => s.sidebarOpen);
+  const close = useStore((s) => s.closeSidebar);
 
   if (!client) return null;
 

@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect } from "react";
 import type { Message } from "@/lib/types";
+import { useStore } from "@/lib/store";
 import { getMessages, saveMessages } from "@/app/(dashboard)/actions/conversations";
 
 type ChatScope =
@@ -164,6 +165,11 @@ export function useChat(
             { role: "assistant" as const, content: fullContent },
           ];
           await saveMessages(conversationId, finalMessages);
+        }
+
+        // Refresh store après un chat agency (peut avoir créé client/projet/produit)
+        if (scope.contextType === "agency") {
+          useStore.getState().loadData();
         }
       } catch (err: unknown) {
         if (err instanceof Error && err.name === "AbortError") return;

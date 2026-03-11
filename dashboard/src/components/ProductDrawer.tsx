@@ -10,7 +10,7 @@ import {
   deleteBudgetProductAction,
 } from "@/lib/store/actions";
 import { ConfirmButton } from "@/components/ConfirmButton";
-import { DeleteMenu } from "@/components/DeleteMenu";
+import { EditMenu } from "@/components/EditMenu";
 import { useStore } from "@/lib/store";
 
 const FIXED_STAGE_KEYS = ["devis", "acompte", "solde"] as const;
@@ -141,23 +141,22 @@ function ProductDrawerContent({
             </div>
           </div>
         ) : (
-          <button
-            onClick={() => { setEditName(liveProduct.name); setEditAmount(String(liveProduct.totalAmount)); setEditingHeader(true); }}
-            className="flex-1 text-left group"
-          >
-            <h2 className="text-base font-semibold text-zinc-900 dark:text-white group-hover:text-zinc-600 dark:group-hover:text-zinc-300 transition-colors">
-              {liveProduct.name}
-              <span className="ml-2 text-xs text-zinc-400 dark:text-zinc-600 opacity-0 group-hover:opacity-100 transition-opacity">✏</span>
-            </h2>
-            <p className="text-sm text-zinc-500 mt-0.5">{liveProduct.totalAmount.toLocaleString("fr-FR")} €</p>
-          </button>
+          <div className="flex-1 flex items-center gap-2 min-w-0">
+            <div className="min-w-0">
+              <h2 className="text-base font-semibold text-zinc-900 dark:text-white truncate">
+                {liveProduct.name}
+              </h2>
+              <p className="text-sm text-zinc-500 mt-0.5">{liveProduct.totalAmount.toLocaleString("fr-FR")} €</p>
+            </div>
+            <EditMenu
+              onRename={() => { setEditName(liveProduct.name); setEditAmount(String(liveProduct.totalAmount)); setEditingHeader(true); }}
+              onDelete={handleDelete}
+              confirmDeleteLabel="Supprimer ce produit ?"
+              disabled={isPending}
+            />
+          </div>
         )}
         <div className="flex items-center gap-2 shrink-0">
-          <DeleteMenu
-            onDelete={handleDelete}
-            confirmLabel="Supprimer ce produit ?"
-            disabled={isPending}
-          />
           <button
             onClick={onClose}
             className="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 flex items-center justify-center text-zinc-600 dark:text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors"

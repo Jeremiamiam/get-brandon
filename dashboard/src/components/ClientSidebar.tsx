@@ -1,19 +1,10 @@
 "use client";
 
-import { useState, useTransition, useRef, useEffect, useLayoutEffect } from "react";
-import { createPortal } from "react-dom";
-import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-
+import { useState, useTransition } from "react";
 import type { Client, ClientCategory } from "@/lib/types";
-import { useSidebar } from "@/context/Sidebar";
-import {
-  createClientAction,
-  updateClientAction,
-  archiveClientAction,
-  unarchiveClientAction,
-  deleteClientAction,
-} from "@/lib/store/actions";
+import { useStore } from "@/lib/store";
+import { getClientProjectDots } from "@/lib/budget-utils";
+import { createClientAction } from "@/lib/store/actions";
 import { ClientAvatar } from "@/components/ClientAvatar";
 
 const TABS: { id: ClientCategory; label: string }[] = [
@@ -31,10 +22,12 @@ export function ClientSidebar({
   prospects: Client[]
   archived: Client[]
 }) {
-  const pathname = usePathname();
-  const router = useRouter();
-  const activeId = pathname?.split("/")[1];
-  const { open, close } = useSidebar();
+  const selectedClientId = useStore((s) => s.selectedClientId);
+  const currentView = useStore((s) => s.currentView);
+  const navigateTo = useStore((s) => s.navigateTo);
+  const navigateToCompta = useStore((s) => s.navigateToCompta);
+  const open = useStore((s) => s.sidebarOpen);
+  const close = useStore((s) => s.closeSidebar);
   const [tab, setTab] = useState<ClientCategory>("client");
   const [search, setSearch] = useState("");
   const [showForm, setShowForm] = useState(false);
@@ -55,7 +48,7 @@ export function ClientSidebar({
       setShowForm(false);
       setNewName("");
       if (result.clientId) {
-        router.push(`/${result.clientId}`);
+        navigateTo(result.clientId);
       }
     });
   }
@@ -164,117 +157,40 @@ export function ClientSidebar({
           <p className="text-xs text-zinc-500 dark:text-zinc-700 px-3 py-4">Aucun élément</p>
         ) : (
           currentClients.map((client) => (
-            <ClientItem key={client.id} client={client} active={client.id === activeId} category={client.category} />
+            <ClientItem
+              key={client.id}
+              client={client}
+              active={client.id === selectedClientId && currentView !== "compta"}
+            />
           ))
         )}
       </nav>
 
       {/* ── Footer ── */}
       <div className="shrink-0 p-3 border-t border-zinc-200 dark:border-zinc-800">
-        {/* Lien comptabilité — visible en responsive uniquement */}
-        <Link
-          href="/compta"
-          onClick={close}
-          className={`md:hidden mt-2 w-full flex items-center gap-2 px-3 py-2 rounded-lg transition-colors text-sm ${
-            pathname === "/compta"
+        <button
+          onClick={() => { navigateToCompta(); close(); }}
+          className={`md:hidden mt-2 w-full flex items-center gap-2 px-3 py-2 rounded-lg transition-colors text-sm cursor-pointer ${
+            currentView === "compta"
               ? "bg-zinc-200 dark:bg-zinc-800 text-zinc-900 dark:text-white"
               : "text-zinc-500 hover:text-zinc-700 hover:bg-zinc-100 dark:text-zinc-600 dark:hover:text-zinc-400 dark:hover:bg-zinc-900"
           }`}
         >
           <span className="text-base leading-none">💳</span>
           <span>Comptabilité</span>
-        </Link>
+        </button>
       </div>
     </aside>
     </>
   );
 }
 
-function ClientItem({ client, active, category }: { client: Client; active: boolean; category: ClientCategory }) {
-  const { close: closeSidebar } = useSidebar();
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [menuRect, setMenuRect] = useState<DOMRect | null>(null);
-  const [confirmingDelete, setConfirmingDelete] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [editName, setEditName] = useState(client.name);
-  const [isPending, startTransition] = useTransition();
-  const menuButtonRef = useRef<HTMLButtonElement>(null);
-
-  useLayoutEffect(() => {
-    if (menuOpen && menuButtonRef.current) {
-      setMenuRect(menuButtonRef.current.getBoundingClientRect());
-    } else {
-      setMenuRect(null);
-    }
-  }, [menuOpen]);
-
-  useEffect(() => {
-    if (!menuOpen) return;
-    function handleClickOutside(e: MouseEvent) {
-      const target = e.target as Node;
-      if (
-        menuButtonRef.current?.contains(target) ||
-        document.getElementById("client-menu-portal")?.contains(target)
-      )
-        return;
-      setMenuOpen(false);
-    }
-    document.addEventListener("click", handleClickOutside);
-    return () => document.removeEventListener("click", handleClickOutside);
-  }, [menuOpen]);
-
-  function handleSaveEdit() {
-    const name = editName.trim();
-    if (!name || name === client.name) {
-      setIsEditing(false);
-      return;
-    }
-    startTransition(async () => {
-      const result = await updateClientAction(client.id, { name });
-      if (!result.error) setIsEditing(false);
-    });
-  }
-
-  function handleArchive() {
-    setMenuOpen(false);
-    startTransition(() => void archiveClientAction(client.id));
-  }
-
-  function handleDelete() {
-    setMenuOpen(false);
-    startTransition(() => void deleteClientAction(client.id));
-  }
-
-  if (isEditing) {
-    return (
-      <div className="flex items-center gap-2 px-2 py-2.5 rounded-lg mb-0.5 bg-zinc-100 dark:bg-zinc-900">
-        <input
-          type="text"
-          value={editName}
-          onChange={(e) => setEditName(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") handleSaveEdit();
-            if (e.key === "Escape") { setIsEditing(false); setEditName(client.name); }
-          }}
-          autoFocus
-          className="flex-1 min-w-0 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded px-2 py-1.5 text-xs"
-        />
-        <button
-          onClick={handleSaveEdit}
-          disabled={!editName.trim() || isPending}
-          className="px-2 py-1 rounded text-[11px] font-medium bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 disabled:opacity-40"
-        >
-          {isPending ? "…" : "OK"}
-        </button>
-        <button
-          onClick={() => { setIsEditing(false); setEditName(client.name); }}
-          className="px-2 py-1 rounded text-[11px] text-zinc-500 hover:text-zinc-700"
-        >
-          ✕
-        </button>
-      </div>
-    );
-  }
+function ClientItem({ client, active }: { client: Client; active: boolean }) {
+  const closeSidebar = useStore((s) => s.closeSidebar);
+  const projects = useStore((s) => s.projects);
+  const budgetProducts = useStore((s) => s.budgetProducts);
+  const navigateTo = useStore((s) => s.navigateTo);
+  const dots = getClientProjectDots(projects, budgetProducts, client.id);
 
   return (
     <div
@@ -284,93 +200,29 @@ function ClientItem({ client, active, category }: { client: Client; active: bool
           : "text-zinc-600 hover:text-zinc-800 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:text-zinc-200 dark:hover:bg-zinc-900"
       }`}
     >
-      <Link
-        href={`/${client.id}`}
-        prefetch
-        onClick={closeSidebar}
-        className="flex items-center gap-3 flex-1 min-w-0"
+      <button
+        onClick={() => { navigateTo(client.id); closeSidebar(); }}
+        className="flex items-center gap-3 flex-1 min-w-0 cursor-pointer"
       >
         <ClientAvatar client={client} size="sm" rounded="lg" active={active} />
         <span className="text-sm font-medium truncate">{client.name}</span>
-      </Link>
-      <div className="relative shrink-0">
-        <button
-          ref={menuButtonRef}
-          onClick={(e) => { e.preventDefault(); setMenuOpen((v) => !v); }}
-          className="p-1 rounded opacity-60 hover:opacity-100 transition-opacity"
-          title="Menu"
-        >
-          <span className="text-xs">⋯</span>
-        </button>
-        {menuOpen &&
-          menuRect &&
-          typeof document !== "undefined" &&
-          createPortal(
-            <div
-              id="client-menu-portal"
-              className="fixed py-1 min-w-[160px] rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 shadow-xl z-[9999]"
-              style={{
-                left: menuRect.left,
-                top: menuRect.bottom + 4,
-              }}
-            >
-              <button
-                onClick={() => { setMenuOpen(false); setIsEditing(true); }}
-                className="w-full px-3 py-1.5 text-left text-xs text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800"
-              >
-                Éditer
-              </button>
-              {category === "archived" ? (
-                <>
-                  <button
-                    onClick={() => {
-                      setMenuOpen(false);
-                      startTransition(() => void unarchiveClientAction(client.id));
-                    }}
-                    disabled={isPending}
-                    className="w-full px-3 py-1.5 text-left text-xs text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-50"
-                  >
-                    Désarchiver
-                  </button>
-                  {confirmingDelete ? (
-                    <div className="flex items-center gap-1 px-3 py-1.5">
-                      <button
-                        onClick={handleDelete}
-                        className="text-xs text-red-600 dark:text-red-400 font-medium hover:underline"
-                      >
-                        Confirmer
-                      </button>
-                      <span className="text-zinc-400">·</span>
-                      <button
-                        onClick={() => setConfirmingDelete(false)}
-                        className="text-xs text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
-                      >
-                        Annuler
-                      </button>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => setConfirmingDelete(true)}
-                      disabled={isPending}
-                      className="w-full px-3 py-1.5 text-left text-xs text-red-600 dark:text-red-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-50"
-                    >
-                      Supprimer définitivement
-                    </button>
-                  )}
-                </>
-              ) : (
-                <button
-                  onClick={handleArchive}
-                  disabled={isPending}
-                  className="w-full px-3 py-1.5 text-left text-xs text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-50"
-                >
-                  Archiver
-                </button>
-              )}
-            </div>,
-            document.body
-          )}
-      </div>
+      </button>
+      {dots.length > 0 && (
+        <div className="flex items-center gap-1 shrink-0" title={dots.map((d) => d).join(", ")}>
+          {dots.map((status, i) => (
+            <span
+              key={i}
+              className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                status === "soldé"
+                  ? "bg-emerald-500"
+                  : status === "commencé"
+                    ? "bg-amber-500"
+                    : "bg-violet-400"
+              }`}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

@@ -289,6 +289,12 @@ export async function buildAgencyContext(): Promise<string> {
   const intro = `\nTu as accès à l'ensemble du portefeuille de l'agence Yam.
 
 Style : réponses ultra-minimalistes. Pas de paraphrase ni d'introduction du type "Basé sur les données…". Va directement à l'essentiel. Ne termine jamais par une question ou une proposition de suivi.
+
+OUTILS DISPONIBLES : Tu peux créer des clients, projets et produits via les outils create_client, create_project, create_product.
+- create_client : nouveau client ou prospect (nom requis, category: "client" ou "prospect")
+- create_project : nouveau projet pour un client existant (clientId, nom requis ; potentialAmount optionnel)
+- create_product : nouveau produit/prestation pour un projet (projectId, nom requis ; devisAmount = montant du devis en €)
+Utilise ces outils quand l'utilisateur demande explicitement de créer un élément. Après exécution, confirme brièvement.
 ${'═'.repeat(60)}`
 
   for (const truncLevel of [0, 1, 2, 3] as const) {

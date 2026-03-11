@@ -1,24 +1,21 @@
 "use client";
 
 import { useState } from "react";
-import { usePathname } from "next/navigation";
 import { AgencyChatDrawer } from "@/components/AgencyChatDrawer";
 import { useClient, useClientProjects } from "@/hooks/useStoreData";
 import { getContrastTextColor } from "@/lib/color-utils";
-
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+import { useStore } from "@/lib/store";
 
 export function AgencyChatFab() {
   const [open, setOpen] = useState(false);
-  const pathname = usePathname();
-  const segments = pathname?.split("/").filter(Boolean) ?? [];
-  const clientId = segments[0];
-  const projectId = segments[1];
-  const hasClient = !!clientId && UUID_RE.test(clientId) && clientId !== "compta";
-  const hasProject = !!projectId && UUID_RE.test(projectId);
-  const client = useClient(hasClient ? clientId : undefined);
-  const projects = useClientProjects(hasClient ? clientId : undefined);
-  const project = hasProject && projects ? projects.find((p) => p.id === projectId) ?? null : null;
+  const selectedClientId = useStore((s) => s.selectedClientId);
+  const selectedProjectId = useStore((s) => s.selectedProjectId);
+  const currentView = useStore((s) => s.currentView);
+  const hasClient = !!selectedClientId && (currentView === "client" || currentView === "project");
+  const hasProject = !!selectedProjectId && currentView === "project";
+  const client = useClient(hasClient ? selectedClientId : undefined);
+  const projects = useClientProjects(hasClient ? selectedClientId : undefined);
+  const project = hasProject && projects ? projects.find((p) => p.id === selectedProjectId) ?? null : null;
 
   const bgColor = !open && client ? client.color : null;
 

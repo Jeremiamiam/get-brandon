@@ -14,7 +14,7 @@ import {
 } from "@/app/(dashboard)/actions/clients";
 import { useStore } from "@/lib/store";
 import { ClientAvatar, invalidateLogoCache } from "@/components/ClientAvatar";
-import { NavIconButton } from "@/components/NavIconButton";
+import { EditMenu } from "@/components/EditMenu";
 import { createClient as createBrowserClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 
@@ -27,29 +27,15 @@ type Props = {
 };
 
 export function ClientHeader({ client, clientId, onArchived, onDeleted, children }: Props) {
-  const [headerMenuOpen, setHeaderMenuOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(client.name);
   const [isPendingClient, startClientTransition] = useTransition();
   const [isPendingLogo, startLogoTransition] = useTransition();
-  const [confirmingDelete, setConfirmingDelete] = useState(false);
-  const headerMenuRef = useRef<HTMLDivElement>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setEditName(client.name);
   }, [client.name]);
-
-  useEffect(() => {
-    if (!headerMenuOpen) return;
-    function handleClickOutside(e: MouseEvent) {
-      if (headerMenuRef.current && !headerMenuRef.current.contains(e.target as Node)) {
-        setHeaderMenuOpen(false);
-      }
-    }
-    document.addEventListener("click", handleClickOutside);
-    return () => document.removeEventListener("click", handleClickOutside);
-  }, [headerMenuOpen]);
 
   function handleSaveEdit() {
     const name = editName.trim();
@@ -64,7 +50,6 @@ export function ClientHeader({ client, clientId, onArchived, onDeleted, children
   }
 
   function handleArchive() {
-    setHeaderMenuOpen(false);
     startClientTransition(async () => {
       await archiveClientAction(clientId);
       onArchived();
@@ -72,7 +57,6 @@ export function ClientHeader({ client, clientId, onArchived, onDeleted, children
   }
 
   function handleDelete() {
-    setHeaderMenuOpen(false);
     startClientTransition(async () => {
       await deleteClientAction(clientId);
       onDeleted();
@@ -86,7 +70,6 @@ export function ClientHeader({ client, clientId, onArchived, onDeleted, children
       toast.error("Seuls les fichiers SVG sont acceptés");
       return;
     }
-    setHeaderMenuOpen(false);
     e.target.value = "";
     startLogoTransition(async () => {
       const urlResult = await createClientLogoUploadUrl(clientId);
@@ -117,7 +100,6 @@ export function ClientHeader({ client, clientId, onArchived, onDeleted, children
   }
 
   function handleRemoveLogo() {
-    setHeaderMenuOpen(false);
     startLogoTransition(async () => {
       const result = await removeClientLogo(clientId);
       if (result.error) {
@@ -189,6 +171,21 @@ export function ClientHeader({ client, clientId, onArchived, onDeleted, children
                 <h1 className="text-lg font-semibold text-zinc-900 dark:text-white leading-none">
                   {client.name}
                 </h1>
+                <EditMenu
+                  onRename={() => setIsEditing(true)}
+                  onDelete={handleDelete}
+                  confirmDeleteLabel="Supprimer définitivement ce client ?"
+                  disabled={isPendingClient}
+                  hideDelete={client.category !== "archived"}
+                  extraItems={[
+                    ...(client.logoPath
+                      ? [{ label: "Supprimer le logo", onClick: handleRemoveLogo, destructive: false }]
+                      : []),
+                    ...(client.category !== "archived"
+                      ? [{ label: "Archiver", onClick: handleArchive, destructive: false }]
+                      : []),
+                  ]}
+                />
               </div>
             )}
           </div>
@@ -197,70 +194,6 @@ export function ClientHeader({ client, clientId, onArchived, onDeleted, children
         {children}
 
         <div className="flex items-center gap-1 sm:gap-2 shrink-0">
-          <div className="relative" ref={headerMenuRef}>
-            <NavIconButton onClick={() => setHeaderMenuOpen((v) => !v)} title="Menu client">
-              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-            </NavIconButton>
-            {headerMenuOpen && (
-              <div className="absolute right-0 top-full mt-1 py-1 min-w-[180px] rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 shadow-lg z-50">
-                {client.logoPath && (
-                  <button
-                    onClick={handleRemoveLogo}
-                    disabled={isPendingLogo}
-                    className="w-full px-3 py-2 text-left text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer disabled:opacity-50"
-                  >
-                    Supprimer le logo
-                  </button>
-                )}
-                <button
-                  onClick={() => {
-                    setHeaderMenuOpen(false);
-                    setIsEditing(true);
-                  }}
-                  className="w-full px-3 py-2 text-left text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
-                >
-                  Éditer
-                </button>
-                {client.category === "archived" ? (
-                  confirmingDelete ? (
-                    <div className="flex items-center gap-1 px-3 py-2">
-                      <button
-                        onClick={handleDelete}
-                        className="text-sm text-red-600 dark:text-red-400 font-medium hover:underline cursor-pointer"
-                      >
-                        Confirmer
-                      </button>
-                      <span className="text-zinc-400">·</span>
-                      <button
-                        onClick={() => setConfirmingDelete(false)}
-                        className="text-sm text-zinc-500 hover:text-zinc-700 cursor-pointer"
-                      >
-                        Annuler
-                      </button>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => setConfirmingDelete(true)}
-                      disabled={isPendingClient}
-                      className="w-full px-3 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-50 cursor-pointer"
-                    >
-                      Supprimer définitivement
-                    </button>
-                  )
-                ) : (
-                  <button
-                    onClick={handleArchive}
-                    disabled={isPendingClient}
-                    className="w-full px-3 py-2 text-left text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-50 cursor-pointer"
-                  >
-                    Archiver
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
           {client.since && (
             <div className="text-right">
               <p className="text-xs text-zinc-500 dark:text-zinc-600">Client depuis</p>

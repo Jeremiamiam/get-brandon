@@ -61,6 +61,7 @@ export function BudgetsTab({
       } else {
         setShowForm(false);
         setNewName("");
+        if (result.product) onSelectProduct?.(result.product);
       }
     });
   }

@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import Link from "next/link";
 import type { Project, BudgetProduct } from "@/lib/types";
+import { projectHasLockedPotentiel } from "@/lib/budget-utils";
 import { createProjectAction } from "@/lib/store/actions";
 import { useStore } from "@/lib/store";
 
@@ -13,6 +13,7 @@ type ProjectCardProps = {
 };
 
 function ProjectCard({ project, products, clientId }: ProjectCardProps) {
+  const navigateTo = useStore((s) => s.navigateTo);
   const { devisé, facturé, paid } = products.reduce(
     (acc, p) => {
       const t = p.devis?.amount ?? p.totalAmount;
@@ -41,12 +42,13 @@ function ProjectCard({ project, products, clientId }: ProjectCardProps) {
     { devisé: 0, facturé: 0, paid: 0 }
   );
   const isSoldé = devisé > 0 && paid >= devisé;
+  const potentielActif =
+    (project.potentialAmount ?? 0) > 0 && !projectHasLockedPotentiel(products, project.id);
 
   return (
-    <Link
-      href={`/${clientId}/${project.id}#produits`}
-      prefetch
-      className={`block group flex flex-col p-5 rounded-xl bg-white dark:bg-zinc-900 border transition-all cursor-pointer ${
+    <button
+      onClick={() => navigateTo(clientId, project.id)}
+      className={`text-left w-full group flex flex-col p-5 rounded-xl bg-white dark:bg-zinc-900 border transition-all cursor-pointer ${
         isSoldé
           ? "border-emerald-500/30 dark:border-emerald-500/30 ring-1 ring-emerald-500/20"
           : "border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700"
@@ -75,17 +77,26 @@ function ProjectCard({ project, products, clientId }: ProjectCardProps) {
       ) : (
         <p className="text-sm text-zinc-500 dark:text-zinc-600 mb-3">Aucun produit</p>
       )}
-      {(devisé > 0 || facturé > 0) && (
-        <div className="mt-auto pt-3 border-t border-zinc-200 dark:border-zinc-800 flex items-center gap-4 text-xs">
-          <span className="text-zinc-600 dark:text-zinc-400">
-            Facturé : <span className="font-medium text-zinc-800 dark:text-zinc-200">{facturé.toLocaleString("fr-FR")} €</span>
-          </span>
-          <span className="text-zinc-600 dark:text-zinc-400">
-            Devisé : <span className="font-medium text-zinc-800 dark:text-zinc-200">{devisé.toLocaleString("fr-FR")} €</span>
-          </span>
+      {(devisé > 0 || facturé > 0 || potentielActif) && (
+        <div className="mt-auto pt-3 border-t border-zinc-200 dark:border-zinc-800 flex flex-wrap items-center gap-4 text-xs">
+          {devisé > 0 || facturé > 0 ? (
+            <>
+              <span className="text-zinc-600 dark:text-zinc-400">
+                Facturé : <span className="font-medium text-zinc-800 dark:text-zinc-200">{facturé.toLocaleString("fr-FR")} €</span>
+              </span>
+              <span className="text-zinc-600 dark:text-zinc-400">
+                Devisé : <span className="font-medium text-zinc-800 dark:text-zinc-200">{devisé.toLocaleString("fr-FR")} €</span>
+              </span>
+            </>
+          ) : null}
+          {potentielActif && (
+            <span className="text-zinc-600 dark:text-zinc-400">
+              Potentiel : <span className="font-medium text-zinc-800 dark:text-zinc-200">{(project.potentialAmount ?? 0).toLocaleString("fr-FR")} €</span>
+            </span>
+          )}
         </div>
       )}
-    </Link>
+    </button>
   );
 }
 

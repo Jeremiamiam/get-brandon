@@ -364,7 +364,7 @@ export async function createBudgetProductAction(params: {
   projectId: string
   name: string
   totalAmount?: number
-}): Promise<{ error: string | null; productId?: string }> {
+}): Promise<{ error: string | null; productId?: string; product?: BudgetProduct }> {
   const auth = await getAuth()
   if (!auth) return { error: 'Not authenticated' }
   const { supabase, userId } = auth
@@ -391,7 +391,7 @@ export async function createBudgetProductAction(params: {
   useStore.setState((s) => ({ budgetProducts: [...s.budgetProducts, optimistic] }))
   toast.success('Produit ajouté')
   invalidateCache()
-  return { error: null, productId: data.id }
+  return { error: null, productId: data.id, product: optimistic }
 }
 
 export async function updateBudgetProductAction(

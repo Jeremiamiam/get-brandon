@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { useStore } from "@/lib/store";
 import { ClientAvatar } from "@/components/ClientAvatar";
 import type { Client, Project } from "@/lib/types";
 
@@ -11,11 +11,9 @@ type Props = {
   rightSlot?: React.ReactNode;
 };
 
-/**
- * Navigation top commune avec fil d'Ariane pour les vues client et projet.
- * Remplace le doublon sidebar "Retour + client" + header projet.
- */
 export function ClientBreadcrumbNav({ client, project, clientId, rightSlot }: Props) {
+  const navigateTo = useStore((s) => s.navigateTo);
+
   return (
     <header
       className="fixed right-0 flex items-center justify-between gap-4 px-6 py-4 border-b"
@@ -29,24 +27,24 @@ export function ClientBreadcrumbNav({ client, project, clientId, rightSlot }: Pr
       }}
     >
       <nav className="flex items-center gap-2 min-w-0 flex-1" aria-label="Fil d'Ariane">
-        <Link
-          href={`/${clientId}`}
-          className="flex items-center gap-2 shrink-0 hover:opacity-90 transition-opacity"
+        <button
+          onClick={() => navigateTo(clientId)}
+          className="flex items-center gap-2 shrink-0 hover:opacity-90 transition-opacity cursor-pointer"
           style={{ color: "var(--color-text)" }}
         >
           <ClientAvatar client={client} size="sm" rounded="lg" />
           <span className="font-medium">{client.name}</span>
-        </Link>
+        </button>
         {project && (
           <>
             <span className="shrink-0" style={{ color: "var(--color-text-supporting)" }}>/</span>
-            <Link
-              href={`/${clientId}/${project.id}`}
-              className="font-medium truncate hover:opacity-90 transition-opacity"
+            <button
+              onClick={() => navigateTo(clientId, project.id)}
+              className="font-medium truncate hover:opacity-90 transition-opacity cursor-pointer"
               style={{ color: "var(--color-text)" }}
             >
               {project.name}
-            </Link>
+            </button>
           </>
         )}
       </nav>

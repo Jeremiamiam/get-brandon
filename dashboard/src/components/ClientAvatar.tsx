@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { getClientLogoSignedUrl } from "@/app/(dashboard)/actions/clients";
 import { getContrastForTintedBg } from "@/lib/color-utils";
-import { useTheme } from "@/context/ThemeContext";
+import { useStore } from "@/lib/store";
 import type { Client } from "@/lib/types";
 
 const LOGO_CACHE_KEY = "yam:logo_urls";
@@ -68,8 +68,7 @@ const SIZE_CLASS = {
 };
 
 export function ClientAvatar({ client, size = "md", rounded = "xl", className = "", active }: Props) {
-  const { theme } = useTheme();
-  const isDark = theme === "dark";
+  const isDark = useStore((s) => s.resolvedTheme) === "dark";
 
   const cached = client.logoPath ? getCachedLogoUrl(client.logoPath) : null;
   const [logoUrl, setLogoUrl] = useState<string | null>(cached);

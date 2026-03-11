@@ -7,12 +7,14 @@ import { useDocumentExtractionRealtime } from "@/hooks/useDocumentExtractionReal
 
 export function StoreProvider({ children }: { children: React.ReactNode }) {
   const loadData = useStore((s) => s.loadData);
+  const initTheme = useStore((s) => s.initTheme);
 
   useEffect(() => {
+    initTheme();
     loadData().catch((err) => {
       console.error('[StoreProvider] loadData failed:', err);
     });
-  }, [loadData]);
+  }, [loadData, initTheme]);
 
   useDocumentExtractionRealtime();
 

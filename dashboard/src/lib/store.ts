@@ -13,6 +13,10 @@ import {
   fetchAllBudgetProducts,
 } from '@/lib/data/client-queries'
 
+export type AppView = 'home' | 'client' | 'project' | 'compta'
+export type ThemePreference = 'light' | 'dark' | 'system'
+export type ResolvedTheme = 'light' | 'dark'
+
 export type StoreState = {
   clients: Client[]
   prospects: Client[]
@@ -24,6 +28,14 @@ export type StoreState = {
   loaded: boolean
   error: string | null
   viewerDocId: string | null
+  // ── SPA navigation ──────────────────────────────────────────
+  currentView: AppView
+  selectedClientId: string | null
+  selectedProjectId: string | null
+  // ── UI state ────────────────────────────────────────────────
+  sidebarOpen: boolean
+  theme: ThemePreference
+  resolvedTheme: ResolvedTheme
 }
 
 type StoreActions = {
@@ -34,6 +46,16 @@ type StoreActions = {
   setBudgetProducts: (budgetProducts: BudgetProduct[]) => void
   updateDocument: (docId: string, updates: Partial<Document>) => void
   setViewerDocId: (id: string | null) => void
+  // ── SPA navigation ──────────────────────────────────────────
+  navigateTo: (clientId: string, projectId?: string) => void
+  navigateToCompta: () => void
+  navigateHome: () => void
+  // ── UI state ────────────────────────────────────────────────
+  toggleSidebar: () => void
+  closeSidebar: () => void
+  initTheme: () => void
+  setTheme: (theme: ThemePreference) => void
+  toggleTheme: () => void
 }
 
 function toCachedData(state: StoreState): CachedData {
@@ -67,6 +89,12 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
   loaded: false,
   error: null,
   viewerDocId: null,
+  currentView: 'home',
+  selectedClientId: null,
+  selectedProjectId: null,
+  sidebarOpen: false,
+  theme: 'system',
+  resolvedTheme: 'light',
 
   loadData: async () => {
     if (get().loading) return
@@ -94,6 +122,12 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
         loaded: true,
         error: null,
         viewerDocId: get().viewerDocId,
+        currentView: get().currentView,
+        selectedClientId: get().selectedClientId,
+        selectedProjectId: get().selectedProjectId,
+        sidebarOpen: get().sidebarOpen,
+        theme: get().theme,
+        resolvedTheme: get().resolvedTheme,
       }
       set(state)
       saveToCache(toCachedData(state))
@@ -112,7 +146,70 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
       documents: s.documents.map((d) => (d.id === docId ? { ...d, ...updates } : d)),
     })),
   setViewerDocId: (id) => set({ viewerDocId: id }),
+
+  navigateTo: (clientId, projectId) => {
+    if (projectId) {
+      set({ currentView: 'project', selectedClientId: clientId, selectedProjectId: projectId })
+      if (typeof window !== 'undefined') window.history.pushState(null, '', `/${clientId}/${projectId}`)
+    } else {
+      set({ currentView: 'client', selectedClientId: clientId, selectedProjectId: null })
+      if (typeof window !== 'undefined') window.history.pushState(null, '', `/${clientId}`)
+    }
+  },
+  navigateToCompta: () => {
+    set({ currentView: 'compta', selectedClientId: null, selectedProjectId: null })
+    if (typeof window !== 'undefined') window.history.pushState(null, '', '/compta')
+  },
+  navigateHome: () => {
+    set({ currentView: 'home', selectedClientId: null, selectedProjectId: null })
+    if (typeof window !== 'undefined') window.history.pushState(null, '', '/')
+  },
+
+  toggleSidebar: () => set((s) => ({ sidebarOpen: !s.sidebarOpen })),
+  closeSidebar: () => set({ sidebarOpen: false }),
+
+  initTheme: () => {
+    if (typeof window === 'undefined') return
+    const stored = localStorage.getItem('theme') as ThemePreference | null
+    const valid: ThemePreference[] = ['light', 'dark', 'system']
+    const pref: ThemePreference = stored && valid.includes(stored) ? stored : 'system'
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+    const resolved: ResolvedTheme = pref === 'system' ? (prefersDark ? 'dark' : 'light') : pref
+    set({ theme: pref, resolvedTheme: resolved })
+    // Listen for OS theme changes
+    const mq = window.matchMedia('(prefers-color-scheme: dark)')
+    mq.addEventListener('change', (e) => {
+      const current = get().theme
+      if (current === 'system') {
+        const r: ResolvedTheme = e.matches ? 'dark' : 'light'
+        set({ resolvedTheme: r })
+        applyThemeToDom(r)
+      }
+    })
+  },
+  setTheme: (theme) => {
+    const prefersDark = typeof window !== 'undefined'
+      ? window.matchMedia('(prefers-color-scheme: dark)').matches
+      : false
+    const resolved: ResolvedTheme = theme === 'system' ? (prefersDark ? 'dark' : 'light') : theme
+    set({ theme, resolvedTheme: resolved })
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('theme', theme)
+      applyThemeToDom(resolved)
+    }
+  },
+  toggleTheme: () => {
+    const resolved = get().resolvedTheme
+    const next: ThemePreference = resolved === 'dark' ? 'light' : 'dark'
+    get().setTheme(next)
+  },
 }))
+
+function applyThemeToDom(resolved: ResolvedTheme) {
+  const html = document.documentElement
+  html.setAttribute('data-theme', resolved)
+  html.classList.toggle('dark', resolved === 'dark')
+}
 
 // ─── Getters ───────────────────────────────────────────────────
 // Each getter accepts only the slices it needs so hooks can select
