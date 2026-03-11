@@ -3,21 +3,24 @@
 .env.local
 .env*.local
 
-# Next.js
-dashboard/.next/
-dashboard/node_modules/
-
 # OS
 .DS_Store
+node_modules/
+.netlify/
 
-# Archives
-clients/
+# Hors scope get-brandon
+dashboard/
 webapp/
+_archives/
+clients/
 JSON/
 PLATEFORME/
 brandon-vocal/
 ornanza-proto/
-node_modules/
-
-# Local Netlify folder
-.netlify
+references/
+scripts/
+tools/
+VISIONS/
+.claude/
+.cursor/
+.planning/
